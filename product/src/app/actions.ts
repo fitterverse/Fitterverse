@@ -20,6 +20,12 @@ export async function signOut() {
 async function requireSession() {
   const session = await getSession()
   if (!session) redirect('/login')
+  return session!
+}
+
+async function requireSessionSafe() {
+  const session = await getSession()
+  if (!session) return null
   return session
 }
 
@@ -43,7 +49,9 @@ export async function saveOnboarding(data: {
   biggest_challenge: string
   motivation: string
 }) {
-  const { uid } = await requireSession()
+  const session = await requireSessionSafe()
+  if (!session) return { error: 'Session expired. Please log in again.' }
+  const { uid } = session
   const supabase = createClient()
 
   const { error } = await supabase

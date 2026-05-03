@@ -125,31 +125,43 @@ export default function OnboardingPage() {
 
   async function handleFinish() {
     setLoading(true)
-    const result = await saveOnboarding({
-      full_name: form.full_name,
-      age: parseInt(form.age),
-      weight_kg: parseFloat(form.weight_kg),
-      height_cm: parseFloat(form.height_cm),
-      goal_weight_kg: parseFloat(form.goal_weight_kg),
-      activity_level: form.activity_level,
-      practices_fasting: form.practices_fasting,
-      meals_per_day: parseInt(form.meals_per_day),
-      breakfast_time: form.breakfast_time,
-      lunch_time: form.lunch_time,
-      dinner_time: form.dinner_time,
-      calorie_limit_per_meal: parseInt(form.calorie_limit_per_meal) || 650,
-      dietary_restrictions: form.dietary_restrictions,
-      diet_goal: form.diet_goal,
-      biggest_challenge: form.biggest_challenge,
-      motivation: form.motivation,
-    })
-    setLoading(false)
-    if (result?.error) {
-      toast.error(result.error)
-    } else {
-      toast.success("You're all set! Let's build that streak 🔥")
-      router.push('/dashboard')
-      router.refresh()
+    try {
+      const result = await saveOnboarding({
+        full_name: form.full_name,
+        age: parseInt(form.age),
+        weight_kg: parseFloat(form.weight_kg),
+        height_cm: parseFloat(form.height_cm),
+        goal_weight_kg: parseFloat(form.goal_weight_kg),
+        activity_level: form.activity_level,
+        practices_fasting: form.practices_fasting,
+        meals_per_day: parseInt(form.meals_per_day),
+        breakfast_time: form.breakfast_time,
+        lunch_time: form.lunch_time,
+        dinner_time: form.dinner_time,
+        calorie_limit_per_meal: parseInt(form.calorie_limit_per_meal) || 650,
+        dietary_restrictions: form.dietary_restrictions,
+        diet_goal: form.diet_goal,
+        biggest_challenge: form.biggest_challenge,
+        motivation: form.motivation,
+      })
+      if (result?.error) {
+        toast.error(result.error)
+      } else {
+        toast.success("You're all set! Let's build that streak 🔥")
+        router.push('/dashboard')
+        router.refresh()
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      // NEXT_REDIRECT means session expired — send to login
+      if (msg.includes('NEXT_REDIRECT')) {
+        router.push('/login')
+      } else {
+        toast.error('Something went wrong. Please try again.')
+        console.error('[onboarding] handleFinish error:', err)
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
