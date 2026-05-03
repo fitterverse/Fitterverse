@@ -21,41 +21,18 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Not logged in and trying to access protected route
+  // Not logged in → send to login
   if (!uid && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Already logged in and hitting auth pages
+  // Already logged in → skip auth pages
   if (uid && isPublicRoute && !pathname.startsWith('/api/')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Check onboarding only for authenticated, non-public, non-onboarding routes
-  if (uid && !isPublicRoute && pathname !== '/onboarding') {
-    // We do a lightweight check via a Supabase REST call
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-    const res = await fetch(
-      `${supabaseUrl}/rest/v1/profiles?id=eq.${uid}&select=onboarding_completed`,
-      {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-        },
-        cache: 'no-store',
-      }
-    )
-
-    if (res.ok) {
-      const data = await res.json()
-      if (data[0] && data[0].onboarding_completed === false) {
-        return NextResponse.redirect(new URL('/onboarding', request.url))
-      }
-    }
-  }
-
+  // Onboarding check is handled in the dashboard server component,
+  // not here — avoids an extra Supabase HTTP call on every request.
   return NextResponse.next()
 }
 
