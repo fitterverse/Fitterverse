@@ -18,16 +18,25 @@ export async function POST(request: NextRequest) {
     .eq('id', uid)
     .single()
 
+  let onboardingCompleted = false
+
   if (!existingProfile) {
     // New user — create profile and streak rows
     await Promise.all([
       supabase.from('profiles').insert({ id: uid, email }),
       supabase.from('user_streaks').insert({ user_id: uid }),
     ])
+  } else {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', uid)
+      .single()
+    onboardingCompleted = profile?.onboarding_completed ?? false
   }
 
   await createSession(uid, email)
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, onboardingCompleted })
 }
 
 // DELETE /api/auth/session — sign out

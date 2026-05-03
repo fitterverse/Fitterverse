@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { saveOnboarding } from '@/app/actions'
+import { saveOnboarding, getProfile } from '@/app/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -78,6 +78,12 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    getProfile().then(profile => {
+      if (profile?.onboarding_completed) router.replace('/dashboard')
+    })
+  }, [])
   const [form, setForm] = useState<FormData>({
     full_name: '',
     age: '',

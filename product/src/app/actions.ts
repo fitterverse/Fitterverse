@@ -48,8 +48,7 @@ export async function saveOnboarding(data: {
 
   const { error } = await supabase
     .from('profiles')
-    .update({ ...data, onboarding_completed: true, updated_at: new Date().toISOString() })
-    .eq('id', uid)
+    .upsert({ id: uid, ...data, onboarding_completed: true, updated_at: new Date().toISOString() })
 
   if (error) return { error: error.message }
   return { success: true }
