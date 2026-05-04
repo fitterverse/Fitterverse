@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
-import { verifyPassword } from '@/lib/auth'
-import { createSession, CrmSession } from '@/lib/session'
+import { createClient } from '@/server/supabase'
+import { verifyPassword } from '@/features/auth/server/password'
+import { createSession, CrmSession } from '@/server/session'
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json()

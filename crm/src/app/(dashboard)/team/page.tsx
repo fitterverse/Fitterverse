@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/supabase'
-import { getSession } from '@/lib/session'
+import { getSession } from '@/server/session'
+import { getTeamMembers } from '@/features/team/server/queries'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, UserCheck, UserX } from 'lucide-react'
 import { format } from 'date-fns'
-import { RoleToggle } from './role-toggle'
+import { RoleToggle } from '@/features/team/components/role-toggle'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,15 +22,6 @@ const ROLE_LABELS: Record<string, string> = {
   nutritionist: 'Nutritionist',
   trainer: 'Trainer',
   sales: 'Sales',
-}
-
-async function getTeamMembers() {
-  const supabase = createClient()
-  const { data } = await supabase
-    .from('crm_users')
-    .select('id, email, full_name, role, is_active, created_at')
-    .order('created_at', { ascending: true })
-  return data ?? []
 }
 
 export default async function TeamPage() {

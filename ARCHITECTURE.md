@@ -362,10 +362,10 @@ Faster and more disk-efficient than the standard `npm`. Reads `package.json` and
 
 ---
 
-### Google Fonts (Geist) — Typography (consumer app)
-**Plain English:** Loads the fonts used in the app.
+### System Font Stack — Typography (consumer app)
+**Plain English:** Defines the fonts used in the app without depending on a build-time network fetch.
 
-The consumer app uses **Geist Sans** (the main body/UI font) and **Geist Mono** (for monospace/code-like text). Loaded via `next/font/google` which optimizes and self-hosts them automatically.
+The consumer app uses a **system sans-serif stack** for primary UI text and a **system monospace stack** for code-like text. These are provided via CSS variables in `src/app/globals.css`, which keeps local builds deterministic and avoids external font fetch failures.
 
 ---
 
@@ -556,8 +556,8 @@ shadcn/ui configuration: sets style (`default`), TypeScript on, Tailwind CSS con
 ### `src/app/layout.tsx` — Root HTML Layout
 
 **What it does:** Wraps every single page in the consumer app. Sets up:
-- **Geist Sans font** — loaded from Google Fonts via `next/font/google`, applied as CSS variable `--font-geist-sans`
-- **Geist Mono font** — same, applied as `--font-geist-mono`
+- **Sans-serif UI font stack** — provided via CSS variable `--font-sans`
+- **Monospace font stack** — provided via CSS variable `--font-geist-mono`
 - **Dark theme** — the `<html>` element has `class="dark"` hardcoded (app is always dark mode)
 - **SEO metadata** — `title: "Fitterverse Diet Tracker"`, `description: "Track your meals, build streaks, earn badges"`
 - **Toaster** — the Sonner toast container, positioned `top-center`, with `richColors` enabled
@@ -784,11 +784,11 @@ Calls `deleteSession()` → removes the cookie. Returns `{ok: true}`.
 
 ### `src/proxy.ts` — Middleware Logic
 
-**Important context:** This file is named `proxy.ts` (not `middleware.ts`) to prevent the CRM's Turbopack build from accidentally finding and compiling it. Next.js only auto-runs files named exactly `middleware.ts` — so this file's logic is **not** currently executing as Next.js Edge Middleware.
+**Important context:** In Next.js 16, `proxy.ts` is the active file convention that replaced `middleware.ts`. So this file **does run** for matched requests.
 
-**Actual route protection mechanism:** Each section of the app has a layout server component that calls `getSession()` and `redirect('/login')` if no session is found. This is where the real protection lives.
+**Actual route protection mechanism:** Route protection is layered. `proxy.ts` handles request-time redirects for public/private routes, and the shared protected layout in `app/(app)/layout.tsx` also checks session + onboarding on the server.
 
-**What `proxy.ts` contains:** The complete middleware logic — session verification via `jwtVerify`, public route detection, redirect logic, and a `config.matcher` that would exclude static files. This serves as a reference implementation and could be activated by renaming to `middleware.ts` in the future.
+**What `proxy.ts` contains:** Session verification via `jwtVerify`, public route detection, redirect logic, and a `config.matcher` that excludes static files.
 
 ---
 
@@ -1740,7 +1740,7 @@ turbopack: { root: path.resolve(__dirname) },
 outputFileTracingRoot: path.resolve(__dirname),
 ```
 
-**Why:** Without these, Turbopack traverses from the Firebase Cloud Build's container root (`/workspace/`) rather than the CRM directory. It finds the consumer app's `src/proxy.ts` (which imports `jose`) but can't resolve `jose` because it's only in `product/node_modules/`, not `crm/node_modules/`. The build fails with: `"./src/proxy.ts — Module not found: Can't resolve 'jose'"`.
+**Why:** Without these, Turbopack traverses from the Firebase Cloud Build's container root (`/workspace/`) rather than the CRM directory. Historically, this caused the CRM build to wander into the former root-level consumer app and pick up the wrong `proxy.ts` / dependency graph. The duplicate root consumer app has since been removed, but these anchors are still important and should not be deleted.
 
 This happened in production and took significant debugging to diagnose. Do not remove these lines.
 
@@ -1776,13 +1776,15 @@ The CRM's `layout.tsx` sets `robots: 'noindex, nofollow'` in the metadata. This 
 
 ---
 
-### `proxy.ts` is not currently running as middleware
+### `proxy.ts` is active in Next.js 16
 
-The file `product/src/proxy.ts` contains middleware-style logic but is named `proxy.ts` instead of `middleware.ts`. Next.js only auto-runs files named exactly `middleware.ts` (at the src/ root). So this file is not executing on requests.
+In Next.js 16, `proxy.ts` is the valid file convention replacing the old `middleware.ts` naming. So `product/src/proxy.ts` **does execute** during requests where its matcher applies.
 
-Route protection in the consumer app is done at the server component level — each section's `layout.tsx` calls `getSession()` and `redirect('/login')` if no session is found. This is equally effective.
+Route protection in the consumer app is therefore layered:
+- `proxy.ts` handles request-time redirects for public/private routes
+- the shared `app/(app)/layout.tsx` still checks session + onboarding on the server
 
-The file was renamed to `proxy.ts` to prevent the CRM's Turbopack from accidentally picking it up during builds. It can be activated as real middleware in the future by renaming to `middleware.ts` and changing its export to `default`.
+That server-side layout check is still valuable as a second line of defense and as the place where onboarding gating happens.
 
 ---
 

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
-import { getSession } from '@/lib/session'
-import { Sidebar } from '@/components/sidebar'
+import { getSession } from '@/server/session'
+import { Sidebar } from '@/features/navigation/components/sidebar'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession()

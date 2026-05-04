@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
-import { hashPassword } from '@/lib/auth'
-import { getSession } from '@/lib/session'
+import { createClient } from '@/server/supabase'
+import { hashPassword } from '@/features/auth/server/password'
+import { getSession } from '@/server/session'
 
 export async function GET() {
   const session = await getSession()

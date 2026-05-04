@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase'
+import { getUserDetail } from '@/features/users/server/queries'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Flame, Award, Calendar } from 'lucide-react'
@@ -18,36 +18,6 @@ const MEAL_POINTS: Record<string, number> = {
   medium: 2,
   junk: 1,
   skipped: 3,
-}
-
-async function getUserDetail(id: string) {
-  const supabase = createClient()
-
-  const [
-    { data: profile },
-    { data: streak },
-    { data: badges },
-    { data: recentMeals },
-    { data: dailyScores },
-  ] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', id).single(),
-    supabase.from('user_streaks').select('*').eq('user_id', id).single(),
-    supabase.from('user_badges').select('badge_slug, earned_at').eq('user_id', id),
-    supabase
-      .from('meal_logs')
-      .select('date, meal_type, rating, note, points')
-      .eq('user_id', id)
-      .order('date', { ascending: false })
-      .limit(30),
-    supabase
-      .from('daily_scores')
-      .select('date, total_points, is_streak_day')
-      .eq('user_id', id)
-      .order('date', { ascending: false })
-      .limit(14),
-  ])
-
-  return { profile, streak, badges, recentMeals, dailyScores }
 }
 
 export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {

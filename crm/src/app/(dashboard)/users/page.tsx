@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase'
+import { getUsers } from '@/features/users/server/queries'
 import Link from 'next/link'
 import { Search, Flame, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
@@ -6,37 +6,6 @@ import { format } from 'date-fns'
 export const dynamic = 'force-dynamic'
 
 interface SearchParams { q?: string }
-
-async function getUsers(q?: string) {
-  const supabase = createClient()
-
-  let query = supabase
-    .from('profiles')
-    .select('id, email, full_name, created_at, onboarding_completed')
-    .order('created_at', { ascending: false })
-    .limit(100)
-
-  if (q) {
-    query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
-  }
-
-  const { data: profiles } = await query
-
-  if (!profiles?.length) return []
-
-  const ids = profiles.map(p => p.id)
-  const { data: streaks } = await supabase
-    .from('user_streaks')
-    .select('user_id, current_streak, last_updated')
-    .in('user_id', ids)
-
-  const streakMap = Object.fromEntries((streaks ?? []).map(s => [s.user_id, s]))
-
-  return profiles.map(p => ({
-    ...p,
-    streak: streakMap[p.id] ?? null,
-  }))
-}
 
 export default async function UsersPage({
   searchParams,

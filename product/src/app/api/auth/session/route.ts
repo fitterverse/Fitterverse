@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSession, deleteSession } from '@/lib/session'
-import { createClient } from '@/lib/supabase/server'
+import { createSession, deleteSession } from '@/server/session'
+import { createClient } from '@/server/supabase/server'
 
 // POST /api/auth/session — called after Firebase sign-in to create server session
 export async function POST(request: NextRequest) {
