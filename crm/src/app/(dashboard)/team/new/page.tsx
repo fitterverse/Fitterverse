@@ -74,7 +74,7 @@ export default function NewTeamMemberPage() {
             placeholder="Priya Sharma"
             value={form.full_name}
             onChange={e => set('full_name', e.target.value)}
-            className="input"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </Field>
 
@@ -85,7 +85,7 @@ export default function NewTeamMemberPage() {
             placeholder="priya@fitterverse.in"
             value={form.email}
             onChange={e => set('email', e.target.value)}
-            className="input"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </Field>
 
@@ -94,7 +94,7 @@ export default function NewTeamMemberPage() {
             required
             value={form.role}
             onChange={e => set('role', e.target.value)}
-            className="input"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
             {ROLES.map(r => (
               <option key={r.value} value={r.value}>{r.label}</option>
@@ -110,7 +110,7 @@ export default function NewTeamMemberPage() {
             placeholder="Min 8 characters"
             value={form.password}
             onChange={e => set('password', e.target.value)}
-            className="input"
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
           <p className="text-xs text-gray-400 mt-1">
             Share this with the team member — they can&apos;t change it yet.
@@ -134,22 +134,6 @@ export default function NewTeamMemberPage() {
         </div>
       </form>
 
-      <style jsx>{`
-        .input {
-          width: 100%;
-          padding: 0.625rem 0.75rem;
-          border-radius: 0.5rem;
-          border: 1px solid #d1d5db;
-          font-size: 0.875rem;
-          background: white;
-          outline: none;
-          transition: box-shadow 0.15s;
-        }
-        .input:focus {
-          box-shadow: 0 0 0 2px #22c55e40;
-          border-color: #22c55e;
-        }
-      `}</style>
     </div>
   )
 }
