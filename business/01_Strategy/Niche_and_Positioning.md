@@ -27,7 +27,12 @@
 
 ## The promise
 
-> Build your first consistent fitness routine in 21 days — without crash diets, gym obsession, or an app you'll uninstall by week two.
+> Fitterverse is the accountability partner for busy Indian professionals who want healthier eating and more consistent workouts without turning fitness into a second job.
+
+## Brand position vs. first offer
+
+- **Brand position:** accountability for diet, workouts, and real-life consistency
+- **First offer / wedge:** the 21-Day Fitterverse Reset cohort
 
 ## The wedge (why this niche, why now)
 
@@ -40,24 +45,24 @@
 
 | Competitor | What they sell | Where we win |
 |---|---|---|
-| Cult.fit | Workout supply, gym aggregation | They sell sessions; we sell habit consistency |
-| Healthify | Calorie tracking + AI coach | They sell tracking; we sell execution + cohort |
+| Cult.fit | Workout supply, gym aggregation | They sell sessions; we sell follow-through across diet and workouts |
+| Healthify | Calorie tracking + AI coach | They sell tracking; we sell execution + accountability |
 | FITTR | 1:1 transformation coaching | They sell ₹15K+ premium plans; we sell ₹999 entry with a community |
-| Instagram coaches | Personal brand programs | They sell themselves; we sell a method (4C) and operating system |
-| MyFitnessPal | Calorie database | Western food-first; we are Indian-first |
+| Instagram coaches | Personal brand programs | They sell themselves; we sell a repeatable method (4C) and operating system |
+| MyFitnessPal | Calorie database | They log food; we build consistency across food and training |
 
 ## The defensible position
 
-> "The Indian-context cohort accountability system for busy professionals."
+> "The Indian-context accountability operating system for busy professionals."
 
 Three things compound over time and become moats:
-1. **Indian food behavior data** — what people actually eat, miss, and binge on
-2. **Cohort completion playbook** — the SOPs and nudges that drive 60%+ completion
-3. **Champion case studies** — every cohort produces 3 named winners, building a transformation library no competitor can copy
+1. **Indian food + routine behavior data** — what people actually eat, skip, delay, and struggle to repeat
+2. **Cohort completion playbook** — the SOPs and nudges that drive diet and workout follow-through
+3. **Champion case studies** — every cohort produces named winners, building a transformation library no competitor can copy
 
 ## What we say in the first ad
 
-> Tired of restarting fitness every Monday?
+> Tired of restarting your diet and workouts every Monday?
 > Join the 21-Day Fitterverse Reset.
 > Indian food. 20-minute workouts. WhatsApp accountability. ₹999.
 > Top 3 transformations win cash + a free next cohort.

@@ -80,13 +80,13 @@ export default function SignupPage() {
         <div className="text-center space-y-2">
           <div className="text-5xl">🌱</div>
           <h1 className="text-3xl font-bold">Start your journey</h1>
-          <p className="text-muted-foreground">Build healthy habits, one meal at a time</p>
+          <p className="text-muted-foreground">Build a healthier routine with daily accountability</p>
         </div>
 
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-xl">Create account</CardTitle>
-            <CardDescription>Free forever — just your email and password</CardDescription>
+            <CardDescription>Free forever — start with your email and password</CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">

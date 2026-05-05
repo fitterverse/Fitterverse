@@ -1,6 +1,6 @@
 # Fitterverse
 
-**Habit-based fitness and nutrition accountability for busy Indian professionals.**
+**Accountability for healthier eating and more consistent workouts for busy Indian professionals.**
 Domain: fitterverse.in
 
 ---
@@ -40,7 +40,7 @@ Domain: fitterverse.in
 
 ## The single line that explains the company
 
-> "Get fitter without extreme diets or gym obsession. Fitterverse is a 21-day WhatsApp-led cohort that builds the fitness habit your real life can actually sustain."
+> "Fitterverse is the accountability partner for busy Indian professionals who want healthier eating and more consistent workouts without turning fitness into a second job."
 
 ---
 

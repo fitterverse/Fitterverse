@@ -6,8 +6,19 @@ const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET!)
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const publicRoutes = ['/login', '/signup', '/api/auth/session']
-  const isPublicRoute = publicRoutes.some(r => pathname.startsWith(r))
+  const publicRoutePrefixes = [
+    '/blog',
+    '/terms',
+    '/privacy-policy',
+    '/login',
+    '/signup',
+    '/api/auth/session',
+  ]
+  const guestOnlyRoutes = ['/login', '/signup']
+  const publicExactRoutes = ['/', '/robots.txt', '/sitemap.xml']
+  const isPublicRoute =
+    publicExactRoutes.includes(pathname) ||
+    publicRoutePrefixes.some(route => pathname.startsWith(route))
 
   const token = request.cookies.get(SESSION_COOKIE)?.value
 
@@ -21,13 +32,14 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Not logged in → send to login
+  // Public website routes stay open to logged-out visitors.
   if (!uid && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Already logged in → skip auth pages
-  if (uid && isPublicRoute && !pathname.startsWith('/api/')) {
+  // Logged-in users landing on the website homepage or auth pages
+  // should continue directly into the product.
+  if (uid && (pathname === '/' || guestOnlyRoutes.some(route => pathname.startsWith(route)))) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

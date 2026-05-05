@@ -76,13 +76,13 @@ export default function LoginPage() {
         <div className="text-center space-y-2">
           <div className="text-5xl">🔥</div>
           <h1 className="text-3xl font-bold">Fitterverse</h1>
-          <p className="text-muted-foreground">Track your meals. Build your streak.</p>
+          <p className="text-muted-foreground">Stay accountable to the routine you&apos;re building.</p>
         </div>
 
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-xl">Welcome back</CardTitle>
-            <CardDescription>Sign in to continue your streak</CardDescription>
+            <CardDescription>Sign in to continue your progress</CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
