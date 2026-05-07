@@ -167,6 +167,72 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   },
 ]
 
+// ──────────────────────────────────────────────
+// Workouts
+// ──────────────────────────────────────────────
+
+export type WorkoutType =
+  | 'running'
+  | 'walking'
+  | 'cycling'
+  | 'swimming'
+  | 'strength'
+  | 'yoga'
+  | 'hiit'
+  | 'dance'
+  | 'sports'
+  | 'stretching'
+  | 'other'
+
+export type WorkoutIntensity = 'low' | 'moderate' | 'high'
+
+export interface WorkoutLog {
+  id: string
+  user_id: string
+  date: string
+  workout_type: WorkoutType
+  intensity: WorkoutIntensity
+  duration_minutes: number
+  calories_burned: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export const WORKOUT_LABELS: Record<WorkoutType, string> = {
+  running: 'Running',
+  walking: 'Walking',
+  cycling: 'Cycling',
+  swimming: 'Swimming',
+  strength: 'Strength',
+  yoga: 'Yoga',
+  hiit: 'HIIT',
+  dance: 'Dance',
+  sports: 'Sports',
+  stretching: 'Stretching',
+  other: 'Other',
+}
+
+export const WORKOUT_EMOJIS: Record<WorkoutType, string> = {
+  running: '🏃',
+  walking: '🚶',
+  cycling: '🚴',
+  swimming: '🏊',
+  strength: '🏋️',
+  yoga: '🧘',
+  hiit: '⚡',
+  dance: '💃',
+  sports: '⚽',
+  stretching: '🤸',
+  other: '💪',
+}
+
+export const INTENSITY_LABELS: Record<WorkoutIntensity, string> = {
+  low: 'Easy',
+  moderate: 'Moderate',
+  high: 'Intense',
+}
+
 export interface Profile {
   id: string
   email: string

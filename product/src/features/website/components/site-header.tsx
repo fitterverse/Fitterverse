@@ -1,12 +1,16 @@
 import Link from 'next/link'
 import { Flame } from 'lucide-react'
-import { siteConfig, websiteNavLinks } from '@/features/website/lib/site'
+import { siteConfig } from '@/features/website/lib/site'
 
 const primaryLinkClassName =
   'inline-flex items-center justify-center rounded-full border border-primary/30 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90'
 
 const secondaryLinkClassName =
   'inline-flex items-center justify-center rounded-full border border-white/12 bg-white/5 px-5 py-2.5 text-sm font-semibold text-foreground transition hover:border-white/20 hover:bg-white/10'
+
+const navLinks = [
+  { href: '/blog', label: 'Blog' },
+]
 
 export function SiteHeader() {
   return (
@@ -20,13 +24,15 @@ export function SiteHeader() {
             <span className="block truncate text-xs font-semibold tracking-[0.16em] text-primary/85 sm:text-sm sm:tracking-[0.18em]">
               {siteConfig.shortName}
             </span>
-            <span className="hidden text-xs text-foreground/60 sm:block">Consistency over crash plans</span>
+            <span className="hidden text-xs text-foreground/55 sm:block">
+              Accountability partner · not a tracker
+            </span>
           </span>
         </Link>
 
         <div className="hidden items-center gap-6 md:flex">
-          <nav className="flex items-center gap-5 text-sm text-foreground/72">
-            {websiteNavLinks.map(link => (
+          <nav className="flex items-center gap-5 text-sm text-foreground/72" aria-label="Site navigation">
+            {navLinks.map(link => (
               <Link key={link.href} href={link.href} className="transition hover:text-foreground">
                 {link.label}
               </Link>
@@ -43,11 +49,17 @@ export function SiteHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 md:hidden">
-          <Link href="/login" className="rounded-full border border-white/12 px-3 py-2 text-xs font-semibold text-foreground/80">
+          <Link
+            href="/login"
+            className="rounded-full border border-white/12 px-3 py-2 text-xs font-semibold text-foreground/80"
+          >
             Login
           </Link>
-          <Link href="/signup" className="rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">
-            Start
+          <Link
+            href="/signup"
+            className="rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+          >
+            Start Free
           </Link>
         </div>
       </div>
