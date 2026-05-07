@@ -168,7 +168,11 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             ) : (
               <div className="space-y-2">
                 {mealPlans.map(plan => (
-                  <div key={plan.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <Link
+                    key={plan.id}
+                    href={`/users/${id}/meal-plan/${plan.id}`}
+                    className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors"
+                  >
                     <div>
                       <p className="text-sm font-medium text-gray-800">{plan.title}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -184,7 +188,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
                     }`}>
                       {plan.status}
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -209,7 +213,11 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             ) : (
               <div className="space-y-2">
                 {workoutPlans.map(plan => (
-                  <div key={plan.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <Link
+                    key={plan.id}
+                    href={`/users/${id}/workout-plan/${plan.id}`}
+                    className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors"
+                  >
                     <div>
                       <p className="text-sm font-medium text-gray-800">{plan.title}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -223,7 +231,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
                     }`}>
                       {plan.status}
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

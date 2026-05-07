@@ -57,6 +57,50 @@ export async function saveMealPlanAction(input: SaveMealPlanInput) {
   revalidatePath(`/users/${input.userId}`)
 }
 
+// ── Update meal plan (edit mode) ──────────────────────────────────
+
+export interface UpdateMealPlanInput extends SaveMealPlanInput {
+  planId: string
+  editableDays: number[]  // day_of_week values that are today or future
+}
+
+export async function updateMealPlanAction(input: UpdateMealPlanInput) {
+  const session = await getSession()
+  if (!session) throw new Error('Unauthorized')
+
+  const supabase = createClient()
+
+  // Update plan header
+  const { error: planError } = await supabase
+    .from('meal_plans')
+    .update({ title: input.title, status: input.status, updated_at: new Date().toISOString() })
+    .eq('id', input.planId)
+
+  if (planError) throw new Error(planError.message)
+
+  if (input.editableDays.length > 0) {
+    // Delete existing items for editable days only
+    const { error: delError } = await supabase
+      .from('meal_plan_items')
+      .delete()
+      .eq('meal_plan_id', input.planId)
+      .in('day_of_week', input.editableDays)
+
+    if (delError) throw new Error(delError.message)
+
+    // Re-insert items for editable days
+    const newItems = input.items.filter(i => input.editableDays.includes(i.day_of_week))
+    if (newItems.length > 0) {
+      const { error: insError } = await supabase
+        .from('meal_plan_items')
+        .insert(newItems.map(item => ({ ...item, meal_plan_id: input.planId })))
+      if (insError) throw new Error(insError.message)
+    }
+  }
+
+  revalidatePath(`/users/${input.userId}`)
+}
+
 // ── Workout plan ──────────────────────────────────────────────────
 
 export interface SaveWorkoutPlanInput {
@@ -120,6 +164,57 @@ export async function saveWorkoutPlanAction(input: SaveWorkoutPlanInput) {
         .from('workout_plan_exercises')
         .insert(day.exercises.map(ex => ({ ...ex, workout_plan_day_id: dayRow.id })))
 
+      if (exError) throw new Error(exError.message)
+    }
+  }
+
+  revalidatePath(`/users/${input.userId}`)
+}
+
+// ── Update workout plan (edit mode) ──────────────────────────────
+
+export interface UpdateWorkoutPlanInput extends SaveWorkoutPlanInput {
+  planId: string
+  editableDays: number[]
+}
+
+export async function updateWorkoutPlanAction(input: UpdateWorkoutPlanInput) {
+  const session = await getSession()
+  if (!session) throw new Error('Unauthorized')
+
+  const supabase = createClient()
+
+  const { error: planError } = await supabase
+    .from('workout_plans')
+    .update({ title: input.title, status: input.status, updated_at: new Date().toISOString() })
+    .eq('id', input.planId)
+
+  if (planError) throw new Error(planError.message)
+
+  const { data: existingDays } = await supabase
+    .from('workout_plan_days')
+    .select('id, day_of_week')
+    .eq('workout_plan_id', input.planId)
+    .in('day_of_week', input.editableDays)
+
+  if (existingDays?.length) {
+    const ids = existingDays.map(d => d.id)
+    await supabase.from('workout_plan_exercises').delete().in('workout_plan_day_id', ids)
+    await supabase.from('workout_plan_days').delete().in('id', ids)
+  }
+
+  for (const day of input.days.filter(d => input.editableDays.includes(d.day_of_week))) {
+    const { data: dayRow, error: dayError } = await supabase
+      .from('workout_plan_days')
+      .insert({ workout_plan_id: input.planId, day_of_week: day.day_of_week, label: day.label || null, is_rest_day: day.is_rest_day, display_order: day.day_of_week })
+      .select('id').single()
+
+    if (dayError || !dayRow) throw new Error(dayError?.message ?? 'Failed to update day')
+
+    if (!day.is_rest_day && day.exercises.length > 0) {
+      const { error: exError } = await supabase
+        .from('workout_plan_exercises')
+        .insert(day.exercises.map(ex => ({ ...ex, workout_plan_day_id: dayRow.id })))
       if (exError) throw new Error(exError.message)
     }
   }

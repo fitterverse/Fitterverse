@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { format, addDays, subDays, startOfWeek } from 'date-fns'
 import { ChevronLeft, ChevronRight, Plus, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { saveMealPlanAction } from '../server/actions'
+import { saveMealPlanAction, updateMealPlanAction } from '../server/actions'
+import { addDays as addD, isBefore, parseISO, startOfDay } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -81,21 +82,57 @@ function dayTotals(grid: GridState, day: number) {
 
 // ── Main component ───────────────────────────────────────────────
 
+interface InitialItem {
+  day_of_week: number
+  meal_slot: string
+  food_item_id: number
+  food_name: string
+  quantity_g: number
+  energy_kcal: number | null
+  protein_g: number | null
+  fat_g: number | null
+  carbs_g: number | null
+  fiber_g: number | null
+}
+
 interface MealPlanBuilderProps {
   userId: string
   userName: string
+  planId?: string
+  initialTitle?: string
+  initialWeekStart?: string
+  initialItems?: InitialItem[]
 }
 
-export function MealPlanBuilder({ userId, userName }: MealPlanBuilderProps) {
+function isPastDay(weekStartStr: string, dayOfWeek: number): boolean {
+  const dayDate = addD(parseISO(weekStartStr), dayOfWeek)
+  return isBefore(dayDate, startOfDay(new Date()))
+}
+
+export function MealPlanBuilder({ userId, userName, planId, initialTitle, initialWeekStart, initialItems }: MealPlanBuilderProps) {
   const router = useRouter()
+  const isEditing = !!planId
 
   const [weekStart, setWeekStart] = useState<Date>(() =>
-    startOfWeek(addDays(new Date(), 7), { weekStartsOn: 1 })
+    initialWeekStart
+      ? parseISO(initialWeekStart)
+      : startOfWeek(addDays(new Date(), 7), { weekStartsOn: 1 })
   )
-  const [title, setTitle] = useState('Meal Plan')
-  const [grid, setGrid] = useState<GridState>({})
+  const [title, setTitle] = useState(initialTitle ?? 'Meal Plan')
+  const [grid, setGrid] = useState<GridState>(() => {
+    if (!initialItems?.length) return {}
+    const g: GridState = {}
+    initialItems.forEach(item => {
+      const key = ck(item.day_of_week, item.meal_slot as MealSlot)
+      if (!g[key]) g[key] = []
+      g[key]!.push({ _key: `init-${item.food_item_id}-${Math.random()}`, food_item_id: item.food_item_id, food_name: item.food_name, quantity_g: item.quantity_g, energy_kcal: item.energy_kcal, protein_g: item.protein_g, fat_g: item.fat_g, carbs_g: item.carbs_g, fiber_g: item.fiber_g })
+    })
+    return g
+  })
   const [activeCell, setActiveCell] = useState<CellKey | null>(null)
   const [saving, setSaving] = useState<null | 'draft' | 'published'>(null)
+
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd')
 
   function addItem(day: number, slot: MealSlot, food: SearchFood, qty: number) {
     const key = ck(day, slot)
@@ -124,32 +161,20 @@ export function MealPlanBuilder({ userId, userName }: MealPlanBuilderProps) {
     for (let day = 0; day < 7; day++) {
       MEAL_SLOTS.forEach(slot => {
         ;(grid[ck(day, slot)] ?? []).forEach((item, idx) => {
-          items.push({
-            day_of_week: day,
-            meal_slot: slot,
-            food_item_id: item.food_item_id,
-            food_name: item.food_name,
-            quantity_g: item.quantity_g,
-            energy_kcal: item.energy_kcal,
-            protein_g:   item.protein_g,
-            fat_g:       item.fat_g,
-            carbs_g:     item.carbs_g,
-            fiber_g:     item.fiber_g,
-            display_order: idx,
-          })
+          items.push({ day_of_week: day, meal_slot: slot, food_item_id: item.food_item_id, food_name: item.food_name, quantity_g: item.quantity_g, energy_kcal: item.energy_kcal, protein_g: item.protein_g, fat_g: item.fat_g, carbs_g: item.carbs_g, fiber_g: item.fiber_g, display_order: idx })
         })
       })
     }
 
+    const editableDays = Array.from({ length: 7 }, (_, i) => i).filter(d => !isPastDay(weekStartStr, d))
+
     setSaving(status)
     try {
-      await saveMealPlanAction({
-        userId,
-        title,
-        weekStart: format(weekStart, 'yyyy-MM-dd'),
-        status,
-        items,
-      })
+      if (isEditing && planId) {
+        await updateMealPlanAction({ planId, userId, title, weekStart: weekStartStr, status, items, editableDays })
+      } else {
+        await saveMealPlanAction({ userId, title, weekStart: weekStartStr, status, items })
+      }
       toast.success(status === 'published' ? 'Plan published to user!' : 'Draft saved')
       router.push(`/users/${userId}`)
     } catch {
@@ -172,23 +197,27 @@ export function MealPlanBuilder({ userId, userName }: MealPlanBuilderProps) {
         />
         <p className="text-sm text-gray-400">for {userName}</p>
 
-        {/* Week navigation */}
+        {/* Week navigation — locked in edit mode */}
         <div className="flex items-center gap-2 ml-auto bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
-          <button
-            onClick={() => setWeekStart(d => subDays(d, 7))}
-            className="text-gray-400 hover:text-gray-700 transition-colors"
-          >
-            <ChevronLeft size={15} />
-          </button>
+          {!isEditing && (
+            <button
+              onClick={() => setWeekStart(d => subDays(d, 7))}
+              className="text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              <ChevronLeft size={15} />
+            </button>
+          )}
           <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
             {format(weekStart, 'MMM d')} – {format(addDays(weekStart, 6), 'MMM d, yyyy')}
           </span>
-          <button
-            onClick={() => setWeekStart(d => addDays(d, 7))}
-            className="text-gray-400 hover:text-gray-700 transition-colors"
-          >
-            <ChevronRight size={15} />
-          </button>
+          {!isEditing && (
+            <button
+              onClick={() => setWeekStart(d => addDays(d, 7))}
+              className="text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              <ChevronRight size={15} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -201,14 +230,18 @@ export function MealPlanBuilder({ userId, userName }: MealPlanBuilderProps) {
               <th className="w-32 p-3 text-left sticky left-0 bg-gray-50 z-10 border-r border-gray-200">
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Meal</span>
               </th>
-              {DAY_SHORT.map((day, i) => (
-                <th key={day} className="p-3 text-center min-w-[140px]">
-                  <div className="text-xs font-semibold text-gray-700">{day}</div>
-                  <div className="text-[10px] text-gray-400 font-normal mt-0.5">
-                    {format(addDays(weekStart, i), 'MMM d')}
-                  </div>
-                </th>
-              ))}
+              {DAY_SHORT.map((day, i) => {
+                const locked = isPastDay(weekStartStr, i)
+                return (
+                  <th key={day} className={`p-3 text-center min-w-[140px] ${locked ? 'opacity-40' : ''}`}>
+                    <div className="text-xs font-semibold text-gray-700">{day}</div>
+                    <div className="text-[10px] text-gray-400 font-normal mt-0.5">
+                      {format(addDays(weekStart, i), 'MMM d')}
+                    </div>
+                    {locked && <div className="text-[9px] text-gray-400 mt-0.5">past</div>}
+                  </th>
+                )
+              })}
             </tr>
           </thead>
 
@@ -225,12 +258,14 @@ export function MealPlanBuilder({ userId, userName }: MealPlanBuilderProps) {
                 {/* 7 day cells */}
                 {Array.from({ length: 7 }, (_, day) => {
                   const key = ck(day, slot)
+                  const locked = isPastDay(weekStartStr, day)
                   return (
-                    <td key={day} className="p-1.5 align-top border-l border-gray-100">
+                    <td key={day} className={`p-1.5 align-top border-l border-gray-100 ${locked ? 'bg-gray-50/60' : ''}`}>
                       <MealCell
                         items={grid[key] ?? []}
                         isActive={activeCell === key}
-                        onOpen={() => setActiveCell(activeCell === key ? null : key)}
+                        isLocked={locked}
+                        onOpen={() => !locked && setActiveCell(activeCell === key ? null : key)}
                         onClose={() => setActiveCell(null)}
                         onAdd={(food, qty) => addItem(day, slot, food, qty)}
                         onRemove={itemKey => removeItem(day, slot, itemKey)}
@@ -307,19 +342,20 @@ export function MealPlanBuilder({ userId, userName }: MealPlanBuilderProps) {
 interface MealCellProps {
   items: GridItem[]
   isActive: boolean
+  isLocked: boolean
   onOpen: () => void
   onClose: () => void
   onAdd: (food: SearchFood, qty: number) => void
   onRemove: (itemKey: string) => void
 }
 
-function MealCell({ items, isActive, onOpen, onClose, onAdd, onRemove }: MealCellProps) {
+function MealCell({ items, isActive, isLocked, onOpen, onClose, onAdd, onRemove }: MealCellProps) {
   return (
-    <div className="min-h-[52px] space-y-1">
+    <div className={`min-h-[52px] space-y-1 ${isLocked ? 'opacity-50' : ''}`}>
       {items.map(item => (
         <div
           key={item._key}
-          className="group flex items-start gap-1 bg-blue-50 border border-blue-100 rounded-md px-2 py-1"
+          className={`group flex items-start gap-1 border rounded-md px-2 py-1 ${isLocked ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-100'}`}
         >
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-medium text-gray-700 leading-tight line-clamp-1">{item.food_name}</p>
@@ -328,25 +364,29 @@ function MealCell({ items, isActive, onOpen, onClose, onAdd, onRemove }: MealCel
               {item.energy_kcal != null && ` · ${item.energy_kcal} kcal`}
             </p>
           </div>
-          <button
-            onClick={() => onRemove(item._key)}
-            className="text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5"
-          >
-            <X size={10} />
-          </button>
+          {!isLocked && (
+            <button
+              onClick={() => onRemove(item._key)}
+              className="text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5"
+            >
+              <X size={10} />
+            </button>
+          )}
         </div>
       ))}
 
-      {isActive ? (
-        <FoodSearchInline onAdd={onAdd} onCancel={onClose} />
-      ) : (
-        <button
-          onClick={onOpen}
-          className="flex items-center gap-0.5 text-[10px] text-gray-400 hover:text-blue-500 transition-colors"
-        >
-          <Plus size={10} />
-          Add
-        </button>
+      {!isLocked && (
+        isActive ? (
+          <FoodSearchInline onAdd={onAdd} onCancel={onClose} />
+        ) : (
+          <button
+            onClick={onOpen}
+            className="flex items-center gap-0.5 text-[10px] text-gray-400 hover:text-blue-500 transition-colors"
+          >
+            <Plus size={10} />
+            Add
+          </button>
+        )
       )}
     </div>
   )
