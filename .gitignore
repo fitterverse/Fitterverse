@@ -36,3 +36,5 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+product/scripts/ifct2017.csv
+product/scripts/ifct2017.json
