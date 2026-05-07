@@ -3,6 +3,8 @@ import { getSession } from '@/server/session'
 import { createClient } from '@/server/supabase/server'
 import { format, subDays } from 'date-fns'
 import { getTodayWorkouts, getTodayCaloriesConsumed, getWorkoutHistory } from '@/features/workouts/server/queries'
+import { getActiveWorkoutPlan } from '@/features/plans/server/queries'
+import { WorkoutPlanView } from '@/features/plans/components/workout-plan-view'
 import { WorkoutLogger } from '@/features/workouts/components/workout-logger'
 import { WorkoutList } from '@/features/workouts/components/workout-list'
 import { CalorieBalanceCard } from '@/features/workouts/components/calorie-balance-card'
@@ -13,7 +15,7 @@ export default async function WorkoutPage() {
   if (!session) redirect('/login')
 
   const supabase = createClient()
-  const [todayWorkouts, profileResult, recentHistory] = await Promise.all([
+  const [todayWorkouts, profileResult, recentHistory, activeWorkoutPlan] = await Promise.all([
     getTodayWorkouts(),
     supabase
       .from('profiles')
@@ -21,6 +23,7 @@ export default async function WorkoutPage() {
       .eq('id', session.uid)
       .single(),
     getWorkoutHistory(7),
+    getActiveWorkoutPlan(),
   ])
 
   const profile = profileResult.data
@@ -127,12 +130,21 @@ export default async function WorkoutPage() {
         </div>
       </div>
 
-      {/* Workout plan placeholder */}
-      <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-center space-y-2">
-        <p className="text-sm font-semibold text-foreground/60">Your Workout Plan</p>
-        <p className="text-xs text-foreground/40 max-w-xs mx-auto leading-relaxed">
-          Your trainer will assign a personalised workout plan here. Coming soon.
-        </p>
+      {/* Workout plan */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+          Your Workout Plan
+        </h2>
+        {activeWorkoutPlan ? (
+          <WorkoutPlanView plan={activeWorkoutPlan.plan} days={activeWorkoutPlan.days} />
+        ) : (
+          <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-center space-y-2">
+            <p className="text-sm font-semibold text-foreground/60">No plan assigned yet</p>
+            <p className="text-xs text-foreground/40 max-w-xs mx-auto leading-relaxed">
+              Your trainer will assign a personalised workout plan here.
+            </p>
+          </div>
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground text-center pb-2">

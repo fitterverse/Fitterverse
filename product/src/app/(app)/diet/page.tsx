@@ -3,6 +3,8 @@ import { getSession } from '@/server/session'
 import { createClient } from '@/server/supabase/server'
 import { getTodayData } from '@/features/dashboard/server/queries'
 import { getHistoryData } from '@/features/history/server/queries'
+import { getActiveMealPlan } from '@/features/plans/server/queries'
+import { MealPlanView } from '@/features/plans/components/meal-plan-view'
 import { MealCard } from '@/features/meals/components/meal-card'
 import { MealType, MealLog, DailyScore, MEAL_LABELS, RATING_COLORS } from '@/shared/types'
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay } from 'date-fns'
@@ -20,10 +22,11 @@ export default async function DietPage() {
   if (!session) redirect('/login')
 
   const supabase = createClient()
-  const [todayData, profileResult, historyData] = await Promise.all([
+  const [todayData, profileResult, historyData, activePlan] = await Promise.all([
     getTodayData(),
     supabase.from('profiles').select('calorie_limit_per_meal').eq('id', session.uid).single(),
     getHistoryData(90),
+    getActiveMealPlan(),
   ])
 
   const calorieLimit = profileResult.data?.calorie_limit_per_meal || 650
@@ -179,12 +182,21 @@ export default async function DietPage() {
         </div>
       </div>
 
-      {/* Meal plan placeholder */}
-      <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-center space-y-2">
-        <p className="text-sm font-semibold text-foreground/60">Your Meal Plan</p>
-        <p className="text-xs text-foreground/40 max-w-xs mx-auto leading-relaxed">
-          Your nutritionist will assign a personalised meal plan here. Coming soon.
-        </p>
+      {/* Meal plan */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          Your Meal Plan
+        </h2>
+        {activePlan ? (
+          <MealPlanView plan={activePlan.plan} items={activePlan.items} />
+        ) : (
+          <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-center space-y-2">
+            <p className="text-sm font-semibold text-foreground/60">No plan assigned yet</p>
+            <p className="text-xs text-foreground/40 max-w-xs mx-auto leading-relaxed">
+              Your nutritionist will assign a personalised meal plan here.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,7 +1,8 @@
 import { getUserDetail } from '@/features/users/server/queries'
+import { getUserMealPlans, getUserWorkoutPlans } from '@/features/plans/server/queries'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Flame, Award, Calendar } from 'lucide-react'
+import { ArrowLeft, Flame, Award, Calendar, Utensils, Dumbbell, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
@@ -22,7 +23,11 @@ const MEAL_POINTS: Record<string, number> = {
 
 export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { profile, streak, badges, recentMeals, dailyScores } = await getUserDetail(id)
+  const [{ profile, streak, badges, recentMeals, dailyScores }, mealPlans, workoutPlans] = await Promise.all([
+    getUserDetail(id),
+    getUserMealPlans(id),
+    getUserWorkoutPlans(id),
+  ])
 
   if (!profile) notFound()
 
@@ -143,6 +148,86 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               <p className="text-xs text-gray-400 mt-2">Green = streak day (≥6 pts). Each box = 1 day.</p>
             </div>
           )}
+
+          {/* Meal Plans */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Utensils size={16} className="text-green-500" />
+                <h3 className="font-semibold text-gray-800 text-sm">Meal Plans</h3>
+              </div>
+              <Link
+                href={`/users/${id}/meal-plan/new`}
+                className="inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-full transition-colors"
+              >
+                <Plus size={11} /> New Plan
+              </Link>
+            </div>
+            {mealPlans.length === 0 ? (
+              <p className="text-sm text-gray-400">No meal plans assigned yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {mealPlans.map(plan => (
+                  <div key={plan.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{plan.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Week of {format(new Date(plan.week_start + 'T00:00:00'), 'MMM d, yyyy')}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                      plan.status === 'published'
+                        ? 'bg-green-100 text-green-700'
+                        : plan.status === 'archived'
+                        ? 'bg-gray-100 text-gray-500'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {plan.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Workout Plans */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Dumbbell size={16} className="text-blue-500" />
+                <h3 className="font-semibold text-gray-800 text-sm">Workout Plans</h3>
+              </div>
+              <Link
+                href={`/users/${id}/workout-plan/new`}
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors"
+              >
+                <Plus size={11} /> New Plan
+              </Link>
+            </div>
+            {workoutPlans.length === 0 ? (
+              <p className="text-sm text-gray-400">No workout plans assigned yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {workoutPlans.map(plan => (
+                  <div key={plan.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{plan.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Week of {format(new Date(plan.week_start + 'T00:00:00'), 'MMM d, yyyy')}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                      plan.status === 'published' ? 'bg-green-100 text-green-700' :
+                      plan.status === 'archived'  ? 'bg-gray-100 text-gray-500' :
+                                                    'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {plan.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Meal log */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
