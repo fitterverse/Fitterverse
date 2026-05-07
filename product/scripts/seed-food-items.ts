@@ -11,8 +11,13 @@ import fs from 'fs'
 import path from 'path'
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'REMOVED_SEE_ENV_LOCAL'
-const SUPABASE_KEY = 'REMOVED_SEE_ENV_LOCAL'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in product/.env.local')
+  process.exit(1)
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
