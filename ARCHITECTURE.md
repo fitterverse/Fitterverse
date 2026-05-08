@@ -30,16 +30,16 @@
 
 ## 1. What is Fitterverse?
 
-Fitterverse is a **habit-based nutrition accountability app** for busy Indian professionals. The core product is the **21-Day Reset** — a cohort programme where users pay ₹999 to track their meals daily for 21 days and build a sustainable eating habit.
+Fitterverse is a **habit-based nutrition and fitness accountability app** for busy Indian professionals. The core product is the **21-Day Reset** — a cohort programme where users pay ₹999 to track their meals and workouts daily for 21 days and build sustainable healthy habits.
 
-**The product in one sentence:** Users log what they ate for each meal (Healthy / Medium / Junk / Skipped), earn points (max 9/day), and build a daily streak. A streak requires ≥6 points per day. The app gives a 2-day grace period before breaking a streak, so one bad day doesn't ruin progress.
+**The product in one sentence:** Users log what they ate (Healthy / Medium / Junk / Skipped), track their workouts, earn points (max 9/day), and build a daily streak. A streak requires ≥6 points per day. The app gives a 2-day grace period before breaking a streak, so one bad day doesn't ruin progress.
 
 **The two sides of the product:**
 
 | Side | Who uses it | URL |
 |---|---|---|
-| Consumer App | Users (people tracking meals) | fitterverse.in |
-| CRM | Internal team (admin, coaches, nutritionists) | crm.fitterverse.in |
+| Consumer App | Users (people tracking meals + workouts) | fitterverse.in |
+| CRM | Internal team (admin, coaches, nutritionists, trainers) | crm.fitterverse.in |
 
 These are **two completely separate websites** that share the same database. They don't call each other — they both read and write to the same Supabase database independently.
 
@@ -48,33 +48,36 @@ These are **two completely separate websites** that share the same database. The
 ## 2. The Two Apps — Big Picture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        USER'S BROWSER                           │
-│                                                                 │
-│   fitterverse.in              │   crm.fitterverse.in            │
-│   (Consumer App)              │   (CRM)                         │
-│                               │                                 │
-│   - Login / Signup            │   - Team login (Supabase auth)  │
-│   - Onboarding quiz (once)    │   - Dashboard stats overview    │
-│   - Log meals daily           │   - All users list + search     │
-│   - View streak & score       │   - Individual user deep-dive   │
-│   - Earn badges               │   - Manage team members/roles   │
-│   - View history & charts     │                                 │
-└──────────────┬────────────────┴──────────────┬──────────────────┘
-               │                               │
-               │ reads/writes                  │ reads/writes
-               │ (service role key)            │ (service role key)
-               ▼                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                         USER'S BROWSER                           │
+│                                                                  │
+│   fitterverse.in                │   crm.fitterverse.in           │
+│   (Consumer App)                │   (CRM)                        │
+│                                 │                                │
+│   - Login / Signup              │   - Team login (Supabase auth) │
+│   - Onboarding quiz (once)      │   - Dashboard stats overview   │
+│   - Log meals daily             │   - All users list + search    │
+│   - Log workouts                │   - Individual user deep-dive  │
+│   - View assigned meal plan     │   - Create meal plans          │
+│   - View assigned workout plan  │   - Create workout plans       │
+│   - Earn badges / streaks       │   - Edit plans (today+future)  │
+│   - View progress & history     │   - Manage team members/roles  │
+└──────────────┬──────────────────┴──────────────┬─────────────────┘
+               │                                 │
+               │ reads/writes                    │ reads/writes
+               │ (service role key)              │ (service role key)
+               ▼                                 ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                    SUPABASE (PostgreSQL)                          │
 │    Hosted cloud database — single source of truth for all data   │
 │                                                                  │
-│   Consumer tables:         CRM table:                            │
-│   - profiles               - crm_users                           │
-│   - meal_logs                                                    │
-│   - daily_scores                                                 │
-│   - user_streaks                                                 │
-│   - user_badges                                                  │
+│   Consumer tables:         CRM table:       Shared tables:       │
+│   - profiles               - crm_users      - meal_plans         │
+│   - meal_logs                               - meal_plan_items    │
+│   - daily_scores                            - workout_plans      │
+│   - user_streaks                            - workout_plan_days  │
+│   - user_badges                             - workout_plan_exs   │
+│   - workout_logs                            - food_items (IFCT)  │
 └──────────────────────────────────────────────────────────────────┘
                │
                │ user identity only (not data storage)
@@ -98,6 +101,9 @@ These are **two completely separate websites** that share the same database. The
 Fitterverse/                         ← Root of the git repo (github.com/fitterverse/Fitterverse)
 │
 ├── ARCHITECTURE.md                  ← THIS FILE — complete guide to the codebase
+├── AGENTS.md                        ← Instructions for AI coding assistants
+├── CLAUDE.md                        ← References AGENTS.md
+├── README.md                        ← Brief project description
 │
 ├── business/                        ← Non-technical docs. NEVER deployed, never code.
 │   ├── 01_Strategy/                 ← Market positioning, 90-day roadmap
@@ -110,7 +116,7 @@ Fitterverse/                         ← Root of the git repo (github.com/fitter
 │   └── 10_Legal/                    ← Terms, disclaimers
 │
 ├── product/                         ← Consumer app (fitterverse.in)
-│   ├── apphosting.yaml              ← Firebase deployment config (runtime + secrets)
+│   ├── apphosting.yaml              ← Firebase App Hosting config (runtime + secrets)
 │   ├── firebase.json                ← Firebase project + hosting config
 │   ├── next.config.ts               ← Next.js framework config (Turbopack root anchor)
 │   ├── package.json                 ← All app dependencies
@@ -122,75 +128,117 @@ Fitterverse/                         ← Root of the git repo (github.com/fitter
 │   ├── .env.local                   ← Local dev secrets (git-ignored, NOT committed)
 │   ├── .env.local.example           ← Template showing which env vars are needed
 │   ├── supabase/
-│   │   └── schema.sql               ← SQL to create all 5 consumer tables in Supabase
+│   │   ├── schema.sql               ← Original 5-table consumer schema
+│   │   └── migrations/
+│   │       ├── 002_add_food_items.sql   ← IFCT 2017 food_items table (+ GIN index)
+│   │       └── 003_add_plan_tables.sql  ← 5 plan tables (meal/workout plans + items)
 │   └── src/
 │       ├── app/                     ← Pages (URL routes) and API routes
 │       │   ├── layout.tsx           ← Root HTML shell: fonts, dark theme, toast container
 │       │   ├── globals.css          ← Design tokens (colors, spacing) via CSS variables
-│       │   ├── page.tsx             ← Root "/" — redirects to /dashboard or /login
-│       │   ├── actions.ts           ← ALL server-side data functions (server actions)
-│       │   ├── login/page.tsx       ← Login form (email + Google sign-in)
-│       │   ├── signup/page.tsx      ← New account creation form
-│       │   ├── onboarding/page.tsx  ← 10-step health profile quiz (once per user)
-│       │   ├── dashboard/
+│       │   ├── robots.ts            ← robots.txt generation (allow all)
+│       │   ├── sitemap.ts           ← XML sitemap generation (SEO)
+│       │   ├── (public)/            ← Route group: no auth required
+│       │   │   ├── login/page.tsx   ← Login form (email + Google sign-in)
+│       │   │   ├── signup/page.tsx  ← New account creation form
+│       │   │   └── onboarding/page.tsx ← 10-step health profile quiz (once per user)
+│       │   ├── (app)/               ← Route group: ALL pages inside require login
 │       │   │   ├── layout.tsx       ← Auth gate + onboarding check + BottomNav wrapper
-│       │   │   └── page.tsx         ← Main daily tracking screen
-│       │   ├── history/
-│       │   │   ├── layout.tsx       ← Auth gate + BottomNav wrapper
-│       │   │   └── page.tsx         ← Monthly calendar + last 7 days detail
-│       │   ├── progress/
-│       │   │   ├── layout.tsx       ← Auth gate + BottomNav wrapper
-│       │   │   └── page.tsx         ← Stats + bar charts (last 30 days)
-│       │   ├── badges/
-│       │   │   ├── layout.tsx       ← Auth gate + BottomNav wrapper
-│       │   │   └── page.tsx         ← Badge collection (earned + locked)
+│       │   │   ├── dashboard/page.tsx  ← Today's meal tracking (legacy name, still /dashboard)
+│       │   │   ├── diet/page.tsx    ← Diet page: today's plan snippet + log + full week view
+│       │   │   ├── workout/page.tsx ← Workout page: today's plan + logger + full week view
+│       │   │   ├── history/page.tsx ← Monthly calendar + last 7 days meals
+│       │   │   ├── progress/page.tsx   ← Stats + charts + workout history
+│       │   │   └── badges/page.tsx  ← Badge collection (earned + locked)
+│       │   ├── (website)/           ← Route group: public marketing site
+│       │   │   ├── layout.tsx       ← Marketing site wrapper (header + footer)
+│       │   │   ├── page.tsx         ← Homepage / landing page
+│       │   │   ├── blog/
+│       │   │   │   ├── page.tsx     ← Blog index (lists all posts)
+│       │   │   │   └── [slug]/page.tsx ← Individual blog post (Markdown rendered)
+│       │   │   ├── privacy-policy/page.tsx
+│       │   │   └── terms/page.tsx
 │       │   └── api/
 │       │       └── auth/
 │       │           └── session/
 │       │               └── route.ts ← POST (create session) + DELETE (sign out)
 │       ├── components/
-│       │   ├── diet/
-│       │   │   ├── meal-card.tsx    ← Interactive meal logging card (expand/rate/save)
-│       │   │   ├── score-ring.tsx   ← SVG circular progress (0-9 pts)
-│       │   │   ├── streak-display.tsx ← Flame icon + streak count + grace dots
-│       │   │   ├── badge-card.tsx   ← Single badge tile (earned vs locked)
-│       │   │   ├── bottom-nav.tsx   ← Fixed bottom navigation bar (4 tabs + sign out)
-│       │   │   └── progress-charts.tsx ← Recharts bar + area charts
+│       │   ├── expandable-section.tsx  ← Client toggle: shows/hides children on tap
 │       │   └── ui/                  ← shadcn/ui components (copied into codebase)
-│       │       ├── button.tsx
-│       │       ├── input.tsx
-│       │       ├── label.tsx
-│       │       ├── card.tsx
-│       │       ├── badge.tsx
-│       │       ├── progress.tsx
-│       │       ├── select.tsx
-│       │       ├── separator.tsx
-│       │       ├── textarea.tsx
-│       │       └── sonner.tsx
-│       ├── lib/
-│       │   ├── firebase/
-│       │   │   └── client.ts        ← Firebase app init + auth instance + Google provider
-│       │   ├── supabase/
-│       │   │   ├── server.ts        ← Supabase client with service role key (server only)
-│       │   │   └── client.ts        ← Supabase client for browser (public URL only)
+│       │       ├── button.tsx, input.tsx, label.tsx, card.tsx
+│       │       ├── badge.tsx, progress.tsx, select.tsx
+│       │       ├── separator.tsx, textarea.tsx, sonner.tsx
+│       ├── content/
+│       │   └── blog/                ← Markdown files for blog posts
+│       ├── features/                ← Feature-sliced code (server + client per domain)
+│       │   ├── auth/
+│       │   │   ├── client/firebase.ts      ← Firebase app init + auth + Google provider
+│       │   │   └── server/session.ts       ← (legacy location, now at src/server/session.ts)
+│       │   ├── badges/
+│       │   │   ├── components/badge-card.tsx
+│       │   │   └── server/queries.ts
+│       │   ├── dashboard/
+│       │   │   ├── components/score-ring.tsx
+│       │   │   └── server/queries.ts       ← getTodayData()
+│       │   ├── history/
+│       │   │   └── server/queries.ts       ← getHistoryData(days)
+│       │   ├── meals/
+│       │   │   ├── components/meal-card.tsx
+│       │   │   └── server/actions.ts       ← saveMeal(), recomputeDailyScore(), updateStreak()
+│       │   ├── navigation/
+│       │   │   └── components/bottom-nav.tsx
+│       │   ├── onboarding/
+│       │   │   └── server/actions.ts       ← saveOnboarding()
+│       │   ├── plans/                      ← Assigned plan display (consumer-side)
+│       │   │   ├── components/
+│       │   │   │   ├── meal-plan-view.tsx      ← Full 7-day meal plan grid
+│       │   │   │   ├── today-plan-snippet.tsx  ← Compact today-only meal plan card
+│       │   │   │   ├── workout-plan-view.tsx   ← Full 7-day workout plan
+│       │   │   │   └── today-workout-snippet.tsx ← Compact today-only workout card
+│       │   │   └── server/queries.ts           ← getActiveMealPlan(), getActiveWorkoutPlan()
+│       │   ├── profile/
+│       │   │   └── server/queries.ts
+│       │   ├── progress/
+│       │   │   └── components/progress-charts.tsx
+│       │   ├── streaks/
+│       │   │   ├── components/streak-display.tsx
+│       │   │   └── lib/streak.ts           ← calculateNewStreak(), getBadgesToAward()
+│       │   ├── website/
+│       │   │   ├── components/             ← blog-markdown.tsx, json-ld.tsx, site-header.tsx, site-footer.tsx
+│       │   │   └── lib/                    ← blog.ts (reads .md files), site.ts (metadata)
+│       │   └── workouts/                   ← Workout logging feature
+│       │       ├── components/
+│       │       │   ├── workout-logger.tsx      ← Log a workout session (exercise type + duration)
+│       │       │   ├── workout-list.tsx        ← List of logged workout sessions
+│       │       │   ├── today-workout-card.tsx  ← Today's workout summary card
+│       │       │   └── calorie-balance-card.tsx ← BMR/TDEE/calorie balance display
+│       │       ├── lib/calorie-math.ts         ← MET-based calorie burn calculation + BMR/TDEE
+│       │       └── server/
+│       │           ├── actions.ts          ← logWorkout(), deleteWorkout()
+│       │           └── queries.ts          ← getTodayWorkouts(), getWorkoutHistory(), getTodayCaloriesConsumed()
+│       ├── proxy.ts                 ← Middleware (Next.js 16 convention, replaces middleware.ts)
+│       ├── server/
 │       │   ├── session.ts           ← Create / read / delete __fv_session JWT cookie
-│       │   ├── streak.ts            ← Pure streak calculation logic (no DB calls)
-│       │   └── utils.ts             ← cn() class-merge utility from shadcn
-│       ├── types/
-│       │   └── index.ts             ← All TypeScript types + POINTS map + BADGE_DEFINITIONS
-│       └── proxy.ts                 ← Middleware logic (see section 6 for details)
+│       │   └── supabase/
+│       │       └── server.ts        ← Supabase client with service role key (server only)
+│       └── shared/
+│           ├── lib/utils.ts         ← cn() class-merge utility
+│           └── types/
+│               ├── index.ts         ← All base types + POINTS map + BADGE_DEFINITIONS + workout types
+│               └── plans.ts         ← Plan types: MealPlan, MealPlanItem, WorkoutPlan, WorkoutPlanDay,
+│                                       WorkoutPlanExercise, FoodItem, DayOfWeek, MealSlot, PlanStatus
+│                                       + display helpers: DAY_LABELS, MEAL_SLOT_LABELS, MEAL_SLOT_EMOJIS
+│                                       + scaleMacros() utility
 │
 └── crm/                             ← CRM app (crm.fitterverse.in)
-    ├── apphosting.yaml              ← Firebase deployment config for CRM
+    ├── apphosting.yaml              ← Firebase App Hosting config for CRM
     ├── firebase.json                ← Firebase project config
     ├── next.config.ts               ← *** Has turbopack.root + outputFileTracingRoot anchors ***
     ├── package.json                 ← CRM-specific dependencies (leaner than consumer app)
     ├── pnpm-lock.yaml               ← Exact pinned versions
     ├── pnpm-workspace.yaml          ← *** CRITICAL: marks crm/ as standalone workspace ***
     ├── postcss.config.mjs           ← PostCSS config for Tailwind
-    ├── tsconfig.json                ← TypeScript settings (scoped to src/ only — important!)
-    ├── supabase/
-    │   └── crm_migration.sql        ← SQL to create crm_users table + seed admin account
+    ├── tsconfig.json                ← TypeScript settings (scoped to src/ only)
     └── src/
         ├── app/
         │   ├── layout.tsx           ← Root HTML: noindex meta, Toaster (top-right)
@@ -199,26 +247,49 @@ Fitterverse/                         ← Root of the git repo (github.com/fitter
         │   ├── login/page.tsx       ← Split-screen login: branded left + form right
         │   ├── (dashboard)/         ← Route group: ALL pages inside require login
         │   │   ├── layout.tsx       ← Auth gate + Sidebar wrapper for all CRM pages
-        │   │   ├── dashboard/
-        │   │   │   └── page.tsx     ← Stats overview (user counts, top streaks)
+        │   │   ├── dashboard/page.tsx      ← Stats overview (user counts, top streaks)
         │   │   ├── users/
-        │   │   │   ├── page.tsx     ← Searchable user table
+        │   │   │   ├── page.tsx            ← Searchable user table
         │   │   │   └── [id]/
-        │   │   │       └── page.tsx ← Individual user deep-dive
+        │   │   │       ├── page.tsx        ← User deep-dive + plan list
+        │   │   │       ├── meal-plan/
+        │   │   │       │   ├── new/page.tsx       ← Create new meal plan
+        │   │   │       │   └── [planId]/page.tsx  ← Edit existing meal plan
+        │   │   │       └── workout-plan/
+        │   │   │           ├── new/page.tsx       ← Create new workout plan
+        │   │   │           └── [planId]/page.tsx  ← Edit existing workout plan
         │   │   └── team/
-        │   │       ├── page.tsx     ← Team member list with inline role editor
-        │   │       ├── role-toggle.tsx ← Client component: PATCH role/active status
-        │   │       └── new/
-        │   │           └── page.tsx ← Add new team member form
+        │   │       ├── page.tsx            ← Team member list + inline role editor
+        │   │       └── new/page.tsx        ← Add new team member form
         │   └── api/
         │       ├── auth/
-        │       │   ├── login/route.ts  ← POST: verify CRM login, issue session cookie
-        │       │   └── logout/route.ts ← POST: delete session cookie
-        │       └── team/route.ts       ← GET/POST/PATCH crm_users (admin only)
-        ├── components/
-        │   └── sidebar.tsx          ← Left nav: logo, links (role-filtered), user + logout
-        └── lib/
-            ├── auth.ts              ← hashPassword() + verifyPassword() using scrypt
+        │       │   ├── login/route.ts      ← POST: verify CRM login, issue session cookie
+        │       │   └── logout/route.ts     ← POST: delete session cookie
+        │       ├── foods/
+        │       │   └── search/route.ts     ← GET /api/foods/search?q=...&limit=8
+        │       └── team/route.ts           ← GET/POST/PATCH crm_users (admin only)
+        ├── features/
+        │   ├── auth/
+        │   │   └── server/password.ts      ← hashPassword() + verifyPassword() using scrypt
+        │   ├── dashboard/
+        │   │   └── server/queries.ts       ← CRM dashboard stats queries
+        │   ├── navigation/
+        │   │   └── components/sidebar.tsx  ← Left nav: logo, links (role-filtered), user + logout
+        │   ├── plans/                      ← Plan builder (CRM side — create/edit plans)
+        │   │   ├── components/
+        │   │   │   ├── meal-plan-builder.tsx    ← 7×6 grid builder (Mon–Sun × 6 meal slots)
+        │   │   │   └── workout-plan-builder.tsx ← 7 day card builder with exercise rows
+        │   │   └── server/
+        │   │       ├── actions.ts          ← saveMealPlanAction, updateMealPlanAction,
+        │   │       │                          saveWorkoutPlanAction, updateWorkoutPlanAction
+        │   │       └── queries.ts          ← getMealPlanWithItems, getWorkoutPlanWithDays,
+        │   │                                  getUserMealPlans, getUserWorkoutPlans
+        │   ├── team/
+        │   │   ├── components/role-toggle.tsx   ← Inline role editor client component
+        │   │   └── server/queries.ts
+        │   └── users/
+        │       └── server/queries.ts            ← getUserDetail() (profile + streak + badges + meals)
+        └── server/
             ├── session.ts           ← Create / read / delete __crm_session JWT cookie
             └── supabase.ts          ← Single Supabase client with service role key
 ```
@@ -235,12 +306,13 @@ Think of building a website like building a house. Each tool is a different trad
 **Plain English:** The skeleton of the house. Handles routing, page rendering, and backend logic all in one project.
 
 **What it does:**
-- **Routing:** Every folder in `src/app/` becomes a URL. `src/app/dashboard/page.tsx` → `yoursite.com/dashboard`.
+- **Routing:** Every folder in `src/app/` becomes a URL. `src/app/(app)/diet/page.tsx` → `yoursite.com/diet`.
+- **Route Groups:** Folders wrapped in `(parentheses)` don't appear in the URL — they're used to share layouts. `(app)/` = logged-in app pages. `(public)/` = login/signup. `(website)/` = marketing site.
 - **App Router:** The newer routing system (since Next.js 13). Pages live in `src/app/`, not `src/pages/`.
 - **Server Components:** Pages that fetch data are rendered on the server (faster first load, better SEO, secure — DB keys never reach the browser).
 - **Client Components:** Interactive parts (forms, buttons with state) are marked `'use client'` and run in the browser.
 - **Server Actions:** Functions marked `'use server'` that can be called directly from React components — no separate API server needed.
-- **API Routes:** `route.ts` files act as REST API endpoints when you need traditional HTTP calls (used for auth).
+- **API Routes:** `route.ts` files act as REST API endpoints when you need traditional HTTP calls (used for auth and food search).
 
 **Version note:** We use Next.js 16 with Turbopack (the new, faster bundler that replaces Webpack).
 
@@ -326,28 +398,32 @@ Powers the bar chart on the Progress page showing daily scores. Must be a client
 ---
 
 ### Sonner — Toast Notifications
-**Plain English:** Those small popup messages that appear and disappear — "Breakfast saved! +3 pts" or "Wrong password".
+**Plain English:** Those small popup messages that appear and disappear — "Breakfast saved! +3 pts" or "Plan published to user!".
 
 Used in both apps. Consumer app: `Toaster position="top-center"`. CRM: `Toaster position="top-right"`.
 
 ---
 
 ### date-fns — Date Utilities
-**Plain English:** A toolbox for working with dates. Formats them, compares them, adds/subtracts days.
+**Plain English:** A toolbox for working with dates. Formats them, compares them, adds/subtracts days, checks if a date is in the current week.
 
-Used for: `format(new Date(), 'yyyy-MM-dd')` → `"2026-05-04"`, formatting display dates like `"Monday, May 4"`.
+Key usages:
+- `format(new Date(), 'yyyy-MM-dd')` → `"2026-05-08"`
+- `isBefore(dayDate, startOfDay(new Date()))` → detect past days (for plan locking)
+- `isThisWeek(parseISO(plan.week_start), { weekStartsOn: 1 })` → is this plan for the current week?
+- `((date.getDay() + 6) % 7)` → convert JS Sunday=0 to ISO Monday=0
 
 ---
 
 ### Lucide React — Icons
-**Plain English:** A library of 1000+ clean, consistent SVG icons. Used as React components: `<Flame size={20} />`, `<Users />`, `<ArrowLeft />`.
+**Plain English:** A library of 1000+ clean, consistent SVG icons. Used as React components: `<Flame size={20} />`, `<Users />`, `<ArrowLeft />`, `<Moon />`, `<ChevronLeft />`.
 
 ---
 
 ### Firebase App Hosting — Deployment Platform
 **Plain English:** Google's service that takes our code from GitHub, builds it, and serves it to users worldwide.
 
-Automatically redeploys whenever code is pushed to the `main` branch. No manual deployment steps needed.
+Automatically redeploys whenever code is pushed to the `main` branch. Manual rollouts can also be triggered via `firebase apphosting:rollouts:create`.
 
 **Two separate backends:**
 - `fitterverse-app` → builds from `product/` → serves `fitterverse.in`
@@ -373,7 +449,14 @@ The consumer app uses a **system sans-serif stack** for primary UI text and a **
 
 All data lives in one Supabase project (`wwzabsfwfojsizexptxe.supabase.co`). Both apps connect using the same service role key.
 
-**Row Level Security:** All 5 consumer tables have RLS enabled as a safety net. However, all actual DB operations use the service role key (which bypasses RLS). RLS rules are not explicitly written — the service role bypasses them anyway.
+**Row Level Security:** All tables have RLS enabled as a safety net. However, all actual DB operations use the service role key (which bypasses RLS). RLS rules are not explicitly written — the service role bypasses them anyway. The exception is `food_items` which has a public read policy for completeness.
+
+**Total tables: 12**
+- 5 consumer tables (profiles, meal_logs, daily_scores, user_streaks, user_badges)
+- 1 workout logging table (workout_logs)
+- 1 CRM team table (crm_users)
+- 1 food database table (food_items)
+- 4 plan tables (meal_plans, meal_plan_items, workout_plans, workout_plan_days, workout_plan_exercises)
 
 ---
 
@@ -404,8 +487,6 @@ One row per registered consumer user. Created on first login.
 | `created_at` | timestamptz | now() | |
 | `updated_at` | timestamptz | now() | |
 
-**Lifecycle:** Row is created on first-ever login (via `POST /api/auth/session`). Updated when onboarding is completed (`saveOnboarding()` action). Read by the dashboard for name and calorie limit; read by CRM user detail page.
-
 ---
 
 ### Table 2: `meal_logs`
@@ -424,11 +505,7 @@ One row per meal per day per user. Maximum 3 rows per user per day.
 | `created_at` | timestamptz | now() | |
 | `updated_at` | timestamptz | now() | |
 
-**Unique constraint:** `(user_id, date, meal_type)` — only one breakfast per user per day. If breakfast is logged twice, it **upserts** (updates the existing row instead of creating a second one).
-
-**Why `points` is stored:** Performance — querying `SUM(points)` is instant. Computing from rating string on every query would be slower.
-
-**Lifecycle:** Written by `saveMeal()` action. Read by dashboard (today's meals), history page (last 90 days), CRM user detail (last 30 days).
+**Unique constraint:** `(user_id, date, meal_type)` — only one breakfast per user per day. If breakfast is logged twice, it **upserts** (updates the existing row).
 
 ---
 
@@ -446,9 +523,7 @@ One row per user per day — the computed total for that day.
 | `created_at` | timestamptz | now() | |
 | `updated_at` | timestamptz | now() | |
 
-**Unique constraint:** `(user_id, date)` — one row per day.
-
-**Lifecycle:** Recomputed by `recomputeDailyScore()` every time any meal is saved. The logic: query all `meal_logs` for this user+date → sum points → update this row. Read by dashboard score ring, history calendar, progress charts.
+**Unique constraint:** `(user_id, date)` — one row per day. Recomputed every time any meal is saved.
 
 ---
 
@@ -466,15 +541,13 @@ One row per user — their current streak state.
 | `created_at` | timestamptz | now() | |
 | `updated_at` | timestamptz | now() | |
 
-**Streak rules (exactly as coded in `src/lib/streak.ts`):**
+**Streak rules:**
 - **Good day:** `total_points >= 6` → streak increments by 1, `consecutive_bad_days` resets to 0
 - **Bad day:** `total_points < 6` → `consecutive_bad_days` increments by 1
 - **Streak breaks:** when `consecutive_bad_days >= 3` → `current_streak` resets to 0
-- **Grace period:** 2 bad days are allowed before the streak breaks on the 3rd
-- **Skipped/Fasting:** counts as 3 points (same as healthy) — fasting is never penalised
-- **No double-update:** If `last_updated == today`, streak is not recalculated (idempotent)
-
-**Lifecycle:** Created when user first signs up. Updated by `updateStreak()` only when a meal is saved for **today's date** (not backdated meals). Read by dashboard streak display, CRM user detail.
+- **Grace period:** 2 bad days allowed before breaking on the 3rd
+- **Skipped/Fasting:** counts as 3 points — fasting is never penalised
+- **Idempotent:** If `last_updated == today`, streak is not recalculated
 
 ---
 
@@ -490,25 +563,41 @@ One row per badge earned per user.
 
 **Unique constraint:** `(user_id, badge_slug)` — can't earn the same badge twice.
 
-**All 9 badge definitions (from `src/types/index.ts`):**
+**All 9 badges:**
 
-| Slug | Name | Icon | Color | How to earn |
-|---|---|---|---|---|
-| `first_meal` | First Bite | 🍽️ | `#6366f1` (indigo) | Log your very first meal |
-| `perfect_day` | Perfect Day | ⭐ | `#f59e0b` (amber) | Score 9/9 in one day |
-| `streak_1` | Getting Started | 🔥 | `#f97316` (orange) | 1-day streak |
-| `streak_3` | Three-peat | 💪 | `#22c55e` (green) | 3-day streak |
-| `streak_7` | One Full Week | 🏆 | `#3b82f6` (blue) | 7-day streak |
-| `streak_21` | 21-Day Warrior | ⚡ | `#8b5cf6` (purple) | 21-day streak |
-| `streak_90` | Quarter Master | 💎 | `#06b6d4` (cyan) | 90-day streak |
-| `streak_180` | Half Year Hero | 🚀 | `#ec4899` (pink) | 180-day streak |
-| `streak_365` | Legend | 👑 | `#fbbf24` (yellow) | 365-day streak |
-
-**Lifecycle:** Checked and inserted by `getBadgesToAward()` inside `updateStreak()`. Awards are idempotent — checks `alreadyEarned` before inserting. Read by dashboard (last 3 recent badges), badges page (all earned + all locked).
+| Slug | Name | How to earn |
+|---|---|---|
+| `first_meal` | First Bite | Log your very first meal |
+| `perfect_day` | Perfect Day | Score 9/9 in one day |
+| `streak_1` | Getting Started | 1-day streak |
+| `streak_3` | Three-peat | 3-day streak |
+| `streak_7` | One Full Week | 7-day streak |
+| `streak_21` | 21-Day Warrior | 21-day streak |
+| `streak_90` | Quarter Master | 90-day streak |
+| `streak_180` | Half Year Hero | 180-day streak |
+| `streak_365` | Legend | 365-day streak |
 
 ---
 
-### Table 6: `crm_users`
+### Table 6: `workout_logs`
+One row per workout session logged by a consumer user.
+
+| Column | Type | Default | What it stores |
+|---|---|---|---|
+| `id` | uuid | gen_random_uuid() | |
+| `user_id` | text | (required) | Firebase UID |
+| `date` | date | (required) | YYYY-MM-DD |
+| `exercise_type` | text | (required) | e.g. "running", "cycling", "yoga", "strength" |
+| `duration_minutes` | integer | (required) | How long the session lasted |
+| `calories_burned` | integer | null | MET-estimated calories burned |
+| `notes` | text | null | Optional free text |
+| `created_at` | timestamptz | now() | |
+
+**MET-based calorie calculation:** `calories_burned = MET × weight_kg × (duration_minutes / 60)`. MET values are defined in `features/workouts/lib/calorie-math.ts`.
+
+---
+
+### Table 7: `crm_users`
 CRM team member accounts. Completely separate from consumer users.
 
 | Column | Type | Default | What it stores |
@@ -518,15 +607,143 @@ CRM team member accounts. Completely separate from consumer users.
 | `password_hash` | text | (required) | Format: `"salt:hash"` (scrypt) |
 | `full_name` | text | (required) | e.g. "Priya Sharma" |
 | `role` | text | `nutritionist` | One of: `admin` / `master_coach` / `nutritionist` / `trainer` / `sales` |
-| `is_active` | boolean | true | Can they log in? Deactivate without deleting the record. |
+| `is_active` | boolean | true | Can they log in? Deactivate without deleting. |
 | `created_at` | timestamptz | now() | |
 | `updated_at` | timestamptz | now() | |
 
-**Index:** `crm_users_email_idx` on `email` for fast login lookup.
+**Seeded admin:** `fitterverse.in@gmail.com` / `Fitterverse@123` (hash stored, not plaintext).
 
-**Seeded admin:** `fitterverse.in@gmail.com` / `Fitterverse@123` (hash stored, not the plaintext).
+---
 
-**Lifecycle:** Created by admin via the "Add team member" form → `POST /api/team`. Password hashed before insert. Modified via `PATCH /api/team` (role change or deactivate/reactivate).
+### Table 8: `food_items`
+542 foods from the **IFCT 2017 (Indian Food Composition Tables)** published by the National Institute of Nutrition, Hyderabad. Seeded once using `product/scripts/seed-food-items.ts`.
+
+| Column | Type | What it stores |
+|---|---|---|
+| `id` | serial (auto int) | Auto-incrementing integer ID |
+| `code` | text UNIQUE | IFCT food code (e.g. "A001") |
+| `name` | text | Food name in English (e.g. "Wheat flour, atta") |
+| `scientific` | text | Scientific name |
+| `lang_names` | text | Names in other Indian languages |
+| `food_group` | text | e.g. "Cereals and millets" |
+| `energy_kcal` | numeric(8,2) | Per 100g |
+| `water_g` | numeric(8,2) | Per 100g |
+| `protein_g` | numeric(8,2) | Per 100g |
+| `fat_g` | numeric(8,2) | Per 100g |
+| `carbs_g` | numeric(8,2) | Per 100g |
+| `fiber_g` | numeric(8,2) | Per 100g |
+| `sugar_g` | numeric(8,2) | Per 100g |
+| `sat_fat_g` | numeric(8,2) | Per 100g |
+| `cholesterol_mg` | numeric(8,2) | Per 100g |
+| `vit_c_mg` | numeric(8,3) | Per 100g |
+| `vit_a_mcg` | numeric(8,3) | Per 100g (retinol) |
+| `thiamine_mg` | numeric(8,4) | Per 100g |
+| `riboflavin_mg` | numeric(8,4) | Per 100g |
+| `niacin_mg` | numeric(8,3) | Per 100g |
+| `vit_b6_mg` | numeric(8,4) | Per 100g |
+| `folate_mcg` | numeric(8,2) | Per 100g |
+| `beta_carotene_mcg` | numeric(8,2) | Per 100g |
+| `calcium_mg` | numeric(8,2) | Per 100g |
+| `iron_mg` | numeric(8,3) | Per 100g |
+| `magnesium_mg` | numeric(8,2) | Per 100g |
+| `phosphorus_mg` | numeric(8,2) | Per 100g |
+| `potassium_mg` | numeric(8,2) | Per 100g |
+| `sodium_mg` | numeric(8,2) | Per 100g |
+| `zinc_mg` | numeric(8,3) | Per 100g |
+
+**GIN index** on `to_tsvector('english', name)` for full-text search. **Important note:** IFCT 2017 uses raw ingredients, not prepared dishes. Search "wheat flour atta" not "roti" — nutritionists should search ingredient names.
+
+**Food search API:** `GET /api/foods/search?q=chicken&limit=8` in the CRM returns id/name/food_group/energy_kcal/protein_g/fat_g/carbs_g/fiber_g. Used by the meal plan builder autocomplete.
+
+---
+
+### Table 9: `meal_plans`
+One plan per user per week, created by CRM nutritionists/admins.
+
+| Column | Type | What it stores |
+|---|---|---|
+| `id` | uuid | Plan ID |
+| `user_id` | text | Firebase UID of the consumer user this plan is for |
+| `created_by` | text | Firebase UID of the CRM user who created it |
+| `title` | text | e.g. "Week 3 — Weight Loss Plan" |
+| `week_start` | date | The Monday of the target week (e.g. `2026-05-06`) |
+| `status` | text | `draft` / `published` / `archived` |
+| `notes` | text | Optional admin notes |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+**How the consumer sees it:** The most recent `published` plan for a user is fetched by `getActiveMealPlan()`. Only shown on the consumer app if `isThisWeek(parseISO(plan.week_start), { weekStartsOn: 1 })` is true.
+
+---
+
+### Table 10: `meal_plan_items`
+One row per food per meal slot per day within a meal plan.
+
+| Column | Type | What it stores |
+|---|---|---|
+| `id` | uuid | |
+| `meal_plan_id` | uuid FK → meal_plans | |
+| `day_of_week` | integer (0–6) | 0=Monday, 6=Sunday (ISO week) |
+| `meal_slot` | text | One of: `breakfast` / `morning_snack` / `lunch` / `afternoon_snack` / `dinner` / `evening_snack` |
+| `food_item_id` | integer FK → food_items | Reference to IFCT food (nullable if food was manually named) |
+| `food_name` | text | Denormalized name — survives if food_items row is ever edited |
+| `quantity_g` | numeric | Serving size in grams |
+| `energy_kcal` | numeric | Pre-computed: `food.energy_kcal × quantity_g / 100` |
+| `protein_g` | numeric | Pre-computed at save time |
+| `fat_g` | numeric | Pre-computed at save time |
+| `carbs_g` | numeric | Pre-computed at save time |
+| `fiber_g` | numeric | Pre-computed at save time |
+| `display_order` | integer | Order within a slot |
+
+**Why macros are denormalized:** Nutrition values should reflect what the plan said at creation time. If the IFCT data is ever corrected, historical plans remain accurate.
+
+---
+
+### Table 11: `workout_plans`
+Same structure as `meal_plans` but for workout programming.
+
+| Column | Type | What it stores |
+|---|---|---|
+| `id` | uuid | |
+| `user_id` | text | Firebase UID |
+| `created_by` | text | CRM user UID |
+| `title` | text | e.g. "Strength + Cardio — May Week 2" |
+| `week_start` | date | Monday of target week |
+| `status` | text | `draft` / `published` / `archived` |
+| `notes` | text | |
+
+---
+
+### Table 12: `workout_plan_days`
+One row per day in a workout plan (7 rows per plan).
+
+| Column | Type | What it stores |
+|---|---|---|
+| `id` | uuid | |
+| `workout_plan_id` | uuid FK → workout_plans | |
+| `day_of_week` | integer (0–6) | 0=Monday |
+| `label` | text | e.g. "Push Day", "Active Recovery" |
+| `is_rest_day` | boolean | If true, no exercises — just a rest marker |
+| `display_order` | integer | Same as day_of_week |
+
+**Unique constraint:** `(workout_plan_id, day_of_week)` — one row per day per plan.
+
+### Table 13: `workout_plan_exercises`
+One row per exercise within a day.
+
+| Column | Type | What it stores |
+|---|---|---|
+| `id` | uuid | |
+| `workout_plan_day_id` | uuid FK → workout_plan_days | |
+| `exercise_name` | text | e.g. "Barbell Squat" |
+| `sets` | integer | e.g. 4 |
+| `reps` | text | Free text: "8-12", "AMRAP", "30s" — allows ranges and descriptors |
+| `duration_minutes` | integer | For cardio/timed exercises |
+| `rest_seconds` | integer | Rest between sets in seconds |
+| `notes` | text | Coaching cues e.g. "Keep chest up, controlled descent" |
+| `display_order` | integer | Order within the day |
+
+**Why `reps` is text:** Reps can be ranges ("8-12"), max effort ("AMRAP"), time-based ("30s"), or percentage-based ("70% 1RM"). Using a number would lose this information.
 
 ---
 
@@ -538,7 +755,7 @@ CRM team member accounts. Completely separate from consumer users.
 ```ts
 turbopack: { root: path.resolve(__dirname) }
 ```
-Anchors Turbopack's workspace root to the `product/` directory. Without this, during Cloud Build, Turbopack might traverse up to the repo root and find the CRM's files.
+Anchors Turbopack's workspace root to the `product/` directory. Without this, during Cloud Build, Turbopack might traverse up to the repo root.
 
 #### `product/pnpm-workspace.yaml`
 ```yaml
@@ -546,430 +763,222 @@ ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
 ```
-Marks `product/` as its own pnpm workspace (prevents pnpm from looking for a root workspace). Also ignores packages that require native binary compilation during install (avoids Cloud Build failures).
-
-#### `product/components.json`
-shadcn/ui configuration: sets style (`default`), TypeScript on, Tailwind CSS config paths, component aliases (`@/components/ui/`).
+Marks `product/` as its own pnpm workspace. Also ignores packages that require native binary compilation (avoids Cloud Build failures).
 
 ---
 
 ### `src/app/layout.tsx` — Root HTML Layout
 
-**What it does:** Wraps every single page in the consumer app. Sets up:
-- **Sans-serif UI font stack** — provided via CSS variable `--font-sans`
-- **Monospace font stack** — provided via CSS variable `--font-geist-mono`
-- **Dark theme** — the `<html>` element has `class="dark"` hardcoded (app is always dark mode)
-- **SEO metadata** — `title: "Fitterverse Diet Tracker"`, `description: "Track your meals, build streaks, earn badges"`
-- **Toaster** — the Sonner toast container, positioned `top-center`, with `richColors` enabled
-
-This file runs on the server. Every page is a child of this layout.
+Wraps every single page. Sets up:
+- **System font stack** via CSS variable `--font-sans`
+- **Monospace font stack** via `--font-geist-mono`
+- **Dark theme** — `<html>` has `class="dark"` hardcoded
+- **SEO metadata** — title + description
+- **Toaster** — Sonner, `top-center`, `richColors`
 
 ---
 
-### `src/app/globals.css` — Design System / Theme
+### `src/app/(public)/` — Unauthenticated Pages
 
-This CSS file defines the entire visual design of the consumer app through CSS custom properties (variables).
+#### `login/page.tsx` — Login
+**Type:** Client component. Firebase `signInWithEmailAndPassword` or `signInWithPopup` (Google). On success, calls `POST /api/auth/session` which creates the `__fv_session` cookie. Redirects to `/dashboard` or `/onboarding` based on `onboarding_completed`.
 
-**Key design choices:**
-- **Color space:** Uses `oklch()` — a modern color format that's more perceptually uniform than hex/rgb
-- **Forced dark mode:** The `:root` block at the bottom of the file overrides with dark theme values (dark background, light text, green primary)
-- **Primary color:** `oklch(0.72 0.19 145)` — a vibrant green used for buttons, progress rings, streak indicators
-- **Background:** `oklch(0.1 0 0)` — very dark, near-black
-- **Card background:** `oklch(0.13 0 0)` — slightly lighter than background for depth
-- **Border radius:** `0.75rem` — applied to all rounded corners
-- **Custom scrollbar:** Thin 4px scrollbar with transparent track
-- **Streak fire animation:** `@keyframes flicker` — the streak flame icon gently pulses using a CSS animation class `.streak-fire`
+#### `signup/page.tsx` — Signup
+Same structure, uses `createUserWithEmailAndPassword`. Always redirects to `/onboarding`.
+
+#### `onboarding/page.tsx` — 10-Step Quiz
+Animated (Framer Motion slide transitions). Collects: name/age, weight/height/goal weight, activity level, diet goal, dietary restrictions, biggest challenge, meal times, fasting, calorie target, motivation. On submit calls `saveOnboarding()` server action.
 
 ---
 
-### `src/app/page.tsx` — Root Redirect
+### `src/app/(app)/` — Authenticated App Pages
 
-**URL:** `fitterverse.in/`
+All pages in this group require a valid `__fv_session` cookie plus completed onboarding. The shared `layout.tsx` checks both on every request.
 
-A server component. Reads the session cookie. If valid → `redirect('/dashboard')`. If not → `redirect('/login')`. No UI rendered — just an instant redirect.
+#### `layout.tsx`
+1. Calls `getSession()` → redirects to `/login` if null
+2. Checks `profiles.onboarding_completed` → redirects to `/onboarding` if false
+3. Renders `<BottomNav />` fixed to bottom
 
----
+#### `dashboard/page.tsx` — Main Daily Tracking
+URL: `/dashboard`. Shows: greeting header, score ring + streak display, meal cards (breakfast/lunch/dinner), recent badges, motivation tip.
 
-### `src/app/login/page.tsx` — Login Page
+#### `diet/page.tsx` — Diet Page (redesigned)
+URL: `/diet`. Designed for minimum scrolling — plan-first, action-prominent:
+1. **Header row** — "Diet" + today's date + today's score (right-aligned, colour-coded)
+2. **TodayPlanSnippet** — shows today's assigned meal plan at the top (if current week plan published)
+3. **"Log Today" section** — 3 MealCards (breakfast/lunch/dinner) front-and-centre
+4. **Bottom 2-col grid** — [History & Streaks → /progress] + [Full week plan ExpandableSection]
 
-**URL:** `fitterverse.in/login`
+**Current week detection:**
+```ts
+const todayDow = ((now.getDay() + 6) % 7) as DayOfWeek  // Mon=0 ISO
+const isCurrentWeekPlan = isThisWeek(parseISO(activePlan.plan.week_start), { weekStartsOn: 1 })
+const todayPlanItems = isCurrentWeekPlan ? activePlan.items.filter(i => i.day_of_week === todayDow) : []
+```
 
-**Type:** Client component (`'use client'` — needs event handlers, useState, Firebase SDK)
+#### `workout/page.tsx` — Workout Page (redesigned)
+URL: `/workout`. Same minimal-scroll layout:
+1. **Header row** — "Workout" + today's date + total kcal burned (right-aligned, if any)
+2. **TodayWorkoutSnippet** — today's assigned workout from plan (if current week)
+3. **"Log Session" section** — WorkoutLogger component
+4. **"Logged Today" section** — WorkoutList (only shown if sessions exist)
+5. **CalorieBalanceCard** — BMR/TDEE summary + calorie balance
+6. **Bottom 2-col grid** — [History & Progress → /progress] + [Full week plan ExpandableSection]
 
-**What's on screen:**
-- Fitterverse logo
-- "Sign in with Google" button (primary CTA)
-- Divider line with "or"
-- Email + password fields
-- "Sign in" button
-- "Don't have an account? Sign up" link
+#### `history/page.tsx` — History
+Monthly calendar heatmap + last 7 days detail (meals as coloured pills).
 
-**Email+password flow:**
-1. Firebase `signInWithEmailAndPassword(auth, email, password)` — Firebase validates
-2. On success: `POST /api/auth/session` with `{uid, email}` → server creates cookie
-3. Response has `onboardingCompleted: true/false` → redirect to `/dashboard` or `/onboarding`
-4. On failure: Sonner toast with Firebase error message
+#### `progress/page.tsx` — Progress & Charts
+4 stat cards + Recharts bar chart of daily scores + workout history. The `ProgressCharts` subcomponent is `'use client'` because Recharts requires the browser DOM.
 
-**Google flow:**
-1. `signInWithPopup(auth, googleProvider)` — opens Google popup
-2. Same session creation step
-3. Same redirect logic
-
-**UI components used:** Card, CardHeader, CardContent, Input, Label, Button (all from `src/components/ui/`). Loader2 spinner from Lucide while loading.
-
----
-
-### `src/app/signup/page.tsx` — Signup Page
-
-**URL:** `fitterverse.in/signup`
-
-**Type:** Client component
-
-Same form layout as login but uses `createUserWithEmailAndPassword()`. New users always go to `/onboarding` (never to `/dashboard` directly).
-
----
-
-### `src/app/onboarding/page.tsx` — Onboarding Quiz
-
-**URL:** `fitterverse.in/onboarding`
-
-**Type:** Client component
-
-A 10-step animated quiz run once when a user first signs up. Uses `useState` to track current step + form values. Uses Framer Motion's `<motion.div>` with `<AnimatePresence>` for slide transitions (current question slides out left, next slides in right).
-
-**10 questions / data collected:**
-1. Full name + age
-2. Current weight (kg) + height (cm) + goal weight (kg)
-3. Activity level (sedentary / light / moderate / active)
-4. Diet goal (lose weight / gain muscle / better energy / balanced)
-5. Dietary restrictions (none / vegetarian / vegan / jain / keto / gluten-free)
-6. Biggest challenge (cravings / busy schedule / portion control / social eating / emotional eating)
-7. Meal times (breakfast, lunch, dinner times as "HH:MM" strings)
-8. Whether they practice fasting (yes/no toggle)
-9. Target calories per meal (slider or number input, default 650)
-10. Motivation (free text)
-
-**On submit:** Calls `saveOnboarding(formData)` server action → upserts `profiles` row with all data + sets `onboarding_completed = true` → redirects to `/dashboard`.
+#### `badges/page.tsx` — Badge Collection
+"X/9 badges earned" + all 9 badges shown (earned = full colour, locked = greyed out with requirement text).
 
 ---
 
-### `src/app/dashboard/layout.tsx` — Dashboard Auth Gate
+### `src/app/(website)/` — Marketing Site
 
-**Type:** Server component (runs on every dashboard page load)
+Public pages with their own layout (header + footer). No auth required.
 
-**What it does:**
-1. Calls `getSession()` — reads + verifies `__fv_session` cookie
-2. If no session → `redirect('/login')`
-3. Queries `profiles` table for `onboarding_completed`
-4. If not completed → `redirect('/onboarding')`
-5. Renders: `<div className="min-h-screen bg-background"><main ...>{children}</main><BottomNav /></div>`
+| URL | What it is |
+|---|---|
+| `/` | Landing page / homepage |
+| `/blog` | Blog post index |
+| `/blog/[slug]` | Individual Markdown blog post |
+| `/privacy-policy` | Privacy policy |
+| `/terms` | Terms of service |
 
-This layout wraps `/dashboard` only (not `/history`, `/progress`, `/badges`). The other pages have their own layouts that also check for session but skip the onboarding check.
-
----
-
-### `src/app/dashboard/page.tsx` — Main Tracking Screen
-
-**URL:** `fitterverse.in/dashboard`
-
-**Type:** Server component (data fetched server-side)
-
-**What's on screen (top to bottom):**
-1. **Header row:** Greeting (`"Good morning, Priya 👋"` with time-based greeting) + today's date + meals logged count (`"2/3 logged"`)
-2. **Score + Streak grid (2 columns):**
-   - Left: `<ScoreRing>` showing `totalPoints / 9` + status text
-   - Right: `<StreakDisplay>` with streak count + `<StreakGraceDots>` if grace period active
-3. **Grace period warning banner** (amber) — shows if `consecutive_bad_days > 0`
-4. **Meal cards section:** Three `<MealCard>` components for breakfast, lunch, dinner
-5. **Recent badges:** Last 3 earned badges (if any)
-6. **Motivation tip:** Bottom nudge card when no meals logged yet (`totalPoints === 0`)
-
-**Data:** Calls `getTodayData()` (4 parallel Supabase queries) + one more query for profile (name, calorie limit). All data fetched in parallel with `Promise.all`.
+`robots.ts` and `sitemap.ts` in `src/app/` generate the SEO files automatically.
 
 ---
 
-### `src/app/history/page.tsx` — History Page
+### `src/app/api/auth/session/route.ts`
 
-**URL:** `fitterverse.in/history`
+**POST** — Called right after Firebase login (client-side). Creates `profiles` + `user_streaks` rows for new users. Issues `__fv_session` cookie. Returns `{ok: true, onboardingCompleted: boolean}`.
 
-**Type:** Server component
-
-**What's on screen:**
-- **Month calendar:** Each day rendered as a coloured dot:
-  - Bright green = 9 pts (perfect day)
-  - Teal = streak day (6–8 pts)
-  - Amber = some meals logged (1–5 pts)
-  - Red = meals logged but poor score
-  - Light grey = nothing logged
-- **Last 7 days detail:** Each day expanded, meals listed as coloured pills (Healthy/Medium/Junk/Skipped in respective colours)
-
-**Data:** `getHistoryData(90)` — last 90 days of scores + last 90×3=270 meal logs.
+**DELETE** — Removes the cookie.
 
 ---
 
-### `src/app/progress/page.tsx` — Progress Charts
+### `src/features/` — Feature Modules
 
-**URL:** `fitterverse.in/progress`
+#### `auth/client/firebase.ts`
+Firebase app init + exports `auth` (Auth instance) + `googleProvider` (GoogleAuthProvider). Client-side only. The `NEXT_PUBLIC_FIREBASE_*` env vars are safe to expose in browser.
 
-**Type:** Server component (data) + `ProgressCharts` client component (Recharts)
+#### `meals/server/actions.ts`
+- `saveMeal({meal_type, rating, calories, note, date})` → upserts `meal_logs` → recomputes daily score → updates streak → `revalidatePath('/dashboard')` + `revalidatePath('/diet')`
+- `recomputeDailyScore(userId, date)` [internal] → sums meal points → upserts `daily_scores` → if today, calls `updateStreak`
+- `updateStreak(userId, date, totalPoints)` [internal] → reads streak → `calculateNewStreak()` → updates `user_streaks` → awards new badges
 
-**What's on screen:**
-- **4 stat cards:** Avg score/day, Streak days count, Perfect days count, Completion %
-- **Bar chart:** Daily scores over last 30 days (bars coloured green/amber/red by score)
-- **Meal distribution:** Horizontal stacked breakdown (healthy % vs medium % vs junk % vs skipped %)
+#### `meals/components/meal-card.tsx`
+The core interactive meal logging component. Collapsed: shows meal name + current rating + points. Expanded: 4 rating buttons, optional calories input, optional note, save button. Client component.
 
-**Data:** `getHistoryData(30)` — last 30 days.
+#### `workouts/server/actions.ts`
+- `logWorkout({exercise_type, duration_minutes, notes, date})` → inserts `workout_logs` row with MET-computed `calories_burned` → `revalidatePath('/workout')`
+- `deleteWorkout(id)` → deletes row → `revalidatePath('/workout')`
 
----
+#### `workouts/server/queries.ts`
+- `getTodayWorkouts()` → all workout_logs for today
+- `getWorkoutHistory(days)` → last N days of workout logs
+- `getTodayCaloriesConsumed(userId)` → sum of `meal_logs.calories` for today
 
-### `src/app/badges/page.tsx` — Badge Collection
+#### `workouts/lib/calorie-math.ts`
+MET (Metabolic Equivalent of Task) values per exercise type. Formula: `calories = MET × weight_kg × (duration_minutes / 60)`. Also exports `calculateBMR(weight, height, age, activityLevel)` and `calculateTDEE()`.
 
-**URL:** `fitterverse.in/badges`
+#### `workouts/components/`
+- `workout-logger.tsx` — Client component. Dropdown for exercise type, duration input, optional note. Calls `logWorkout()`.
+- `workout-list.tsx` — Renders list of logged sessions with type, duration, calories.
+- `calorie-balance-card.tsx` — Shows BMR, TDEE, calories consumed today, calories burned, net balance.
 
-**Type:** Server component
+#### `plans/server/queries.ts`
+- `getActiveMealPlan()` → most recent `published` meal plan for current user + all items
+- `getActiveWorkoutPlan()` → most recent `published` workout plan for current user + days + exercises
 
-**What's on screen:**
-- **Progress header:** "X/9 badges earned" with a progress bar
-- **Special badges section:** First Bite + Perfect Day
-- **Streak badges section:** All 7 streak badges in order (Getting Started → Legend)
-- Earned badges: full colour with icon + earned date
-- Locked badges: greyed out with requirement text
+#### `plans/components/today-plan-snippet.tsx`
+Compact today-only meal plan display. Groups `meal_plan_items` by `meal_slot`, shows emoji + slot name + "food1 100g · food2 50g" + kcal per slot. Header shows total kcal + protein for the day. Styled with `bg-primary/5 border border-primary/20`.
 
-**Data:** `getBadgesData()` — earned badges + current streak + `BADGE_DEFINITIONS` array.
+#### `plans/components/today-workout-snippet.tsx`
+Compact today-only workout display. Rest day: 😴 + "Rest Day" text. Active day: numbered exercise list with sets × reps + rest seconds.
 
----
+#### `plans/components/meal-plan-view.tsx`
+Full 7-day week meal plan grid. Today's day is highlighted (`border-primary/40`, "Today" badge, `bg-primary/8` header). Per-slot shows food items with quantities + kcal. Day footer shows totals (kcal + P/C/F). Passed as `children` to `ExpandableSection`.
 
-### `src/app/actions.ts` — All Server Actions
+#### `plans/components/workout-plan-view.tsx`
+Full 7-day workout week display. Today highlighted. Exercise details: sets, reps, rest seconds, duration, coaching notes. Passed as `children` to `ExpandableSection`.
 
-Marked `'use server'` at the top — every function in this file runs on the server, called directly from React components.
+#### `components/expandable-section.tsx`
+Client component (`'use client'`). Toggle: `useState(false)`. Chevron rotates on open. The key pattern: **pre-rendered server component output can be passed as `children`** — this means the plan data (fetched on the server) is never re-fetched when the user taps to expand. Zero additional network requests.
 
-**Auth:**
-- `signOut()` → calls `deleteSession()` + `redirect('/login')`
-- `requireSession()` → gets session or redirects (used internally by other actions)
+```tsx
+// In workout/page.tsx (server component):
+<ExpandableSection trigger="Full week plan">
+  <WorkoutPlanView plan={activeWorkoutPlan.plan} days={activeWorkoutPlan.days} />
+</ExpandableSection>
+```
 
-**Onboarding:**
-- `saveOnboarding(data)` → upserts `profiles` row with all 16 onboarding fields + `onboarding_completed: true`
+#### `streaks/lib/streak.ts`
+Pure functions, no DB calls:
+- `calculateNewStreak(streak, todayPoints, today)` — streak state machine
+- `getBadgesToAward(currentStreak, alreadyEarned, isPerfectDay, isFirstMeal)` — returns new badge slugs
+- `getStreakMessage(streak, consecutiveBadDays)` — motivational string
 
-**Meal logging:**
-- `saveMeal({meal_type, rating, calories, note, date})` → upserts `meal_logs` row → calls `recomputeDailyScore` → calls `revalidatePath('/dashboard')` and `revalidatePath('/history')`
-- `recomputeDailyScore(userId, date)` [internal] → sums all meal points for user+date → upserts `daily_scores` → if date is today, calls `updateStreak`
-- `updateStreak(userId, date, totalPoints)` [internal] → reads `user_streaks` → calls `calculateNewStreak()` → updates `user_streaks` → checks + awards new badges → calls `revalidatePath('/badges')`
+#### `dashboard/server/queries.ts`
+`getTodayData()` — 4 parallel Supabase queries: today's meals, today's score, streak, last 3 badges.
 
-**Data fetching:**
-- `getTodayData()` → 4 parallel queries: today's meals, today's score, streak, last 3 badges
-- `getHistoryData(days)` → scores + meals for last N days
-- `getBadgesData()` → earned badges + streak + BADGE_DEFINITIONS
-- `getProfile()` → full profile row for current user
+#### `history/server/queries.ts`
+`getHistoryData(days)` — last N days of scores + meals.
 
----
+#### `profile/server/queries.ts`
+Profile data for current user.
 
-### `src/app/api/auth/session/route.ts` — Session API
+#### `badges/server/queries.ts`
+`getBadgesData()` — earned badges + current streak + `BADGE_DEFINITIONS`.
 
-**POST `/api/auth/session`**
-
-Called by the browser immediately after Firebase login succeeds (Firebase runs client-side, the session cookie needs a server call).
-
-1. Reads `{uid, email}` from request body
-2. Checks if `profiles` row exists for this uid
-3. **New user:** inserts row in `profiles` (with just uid+email) AND inserts row in `user_streaks` (all zeros)
-4. **Existing user:** reads `onboarding_completed` flag
-5. Calls `createSession(uid, email)` → creates `__fv_session` JWT cookie
-6. Returns `{ok: true, onboardingCompleted: boolean}`
-
-**DELETE `/api/auth/session`**
-
-Calls `deleteSession()` → removes the cookie. Returns `{ok: true}`.
-
----
-
-### `src/proxy.ts` — Middleware Logic
-
-**Important context:** In Next.js 16, `proxy.ts` is the active file convention that replaced `middleware.ts`. So this file **does run** for matched requests.
-
-**Actual route protection mechanism:** Route protection is layered. `proxy.ts` handles request-time redirects for public/private routes, and the shared protected layout in `app/(app)/layout.tsx` also checks session + onboarding on the server.
-
-**What `proxy.ts` contains:** Session verification via `jwtVerify`, public route detection, redirect logic, and a `config.matcher` that excludes static files.
-
----
-
-### `src/lib/firebase/client.ts` — Firebase Initialisation
-
-Creates the Firebase app (using `NEXT_PUBLIC_FIREBASE_*` env vars) and exports:
-- `auth` — the Firebase Auth instance used for `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`, `signOut`
-- `googleProvider` — `GoogleAuthProvider` instance for `signInWithPopup`
-
-**Client-side only.** The `NEXT_PUBLIC_*` Firebase credentials are safe to expose in the browser — they identify the project but don't grant admin access. Firebase Auth rules control what authenticated users can do.
-
----
-
-### `src/lib/supabase/server.ts` — Server Supabase Client
-
-Creates a `SupabaseClient` using `SUPABASE_SERVICE_ROLE_KEY`. This key has full read/write access to the entire database, bypassing Row Level Security.
-
-**Server-side only** — never imported in client components. Used in all server actions and API routes.
-
----
-
-### `src/lib/supabase/client.ts` — Browser Supabase Client
-
-Creates a `SupabaseClient` using only the public `NEXT_PUBLIC_SUPABASE_URL`. No sensitive key. Limited to what's allowed by RLS rules (which in practice block everything from the browser since we use service role on server).
-
-Used only when a browser component needs to make a direct Supabase call (rare — most data flows through server actions).
-
----
-
-### `src/lib/session.ts` — Consumer Session Management
-
-Four functions:
-- `createSession(uid, email)` → signs a JWT with `SESSION_SECRET`, sets `__fv_session` cookie (httpOnly, secure, lax, 14 days, path `/`)
-- `getSession()` → reads cookie → verifies JWT → returns `{uid, email}` or `null`
-- `deleteSession()` → removes the cookie
-- `verifySessionToken(token)` → verifies an arbitrary token string (used internally)
-
-JWT payload: `{uid: string, email: string}`, algorithm HS256, expires 14 days.
-
----
-
-### `src/lib/streak.ts` — Streak Logic
-
-Pure functions — no database calls, no side effects.
-
-- `calculateNewStreak(streak, todayPoints, today)` — Takes current streak state + today's score → returns new streak state object. Constants: `MIN_STREAK_POINTS = 6`, `STREAK_BREAK_DAYS = 3`.
-
-  Logic:
-  - If `todayPoints >= 6`: increment `current_streak`, reset `consecutive_bad_days` to 0, update `longest_streak` if new record
-  - If `todayPoints < 6`: increment `consecutive_bad_days`. If `consecutive_bad_days >= 3`: reset `current_streak` to 0 and `consecutive_bad_days` to 0
-
-- `getBadgesToAward(currentStreak, alreadyEarned, isPerfectDay, isFirstMeal)` — returns array of new `BadgeSlug` values to award. Checks `first_meal`, `perfect_day`, and all streak thresholds (1, 3, 7, 21, 90, 180, 365).
-
-- `getStreakMessage(streak, consecutiveBadDays)` — returns a motivational string. If bad days active: warns about remaining days. Otherwise scales from "Start your streak!" → "ABSOLUTE LEGEND! 👑" at 365 days.
-
----
-
-### `src/types/index.ts` — All Type Definitions
-
-Central type file. Everything TypeScript needs to know about the data shapes:
-- `MealType` = `'breakfast' | 'lunch' | 'dinner'`
-- `MealRating` = `'healthy' | 'medium' | 'junk' | 'skipped'`
-- `POINTS` map — `{healthy: 3, medium: 2, junk: 1, skipped: 3}`
-- `RATING_LABELS` — display names for each rating
-- `RATING_COLORS` — hex colors per rating (green/amber/red/indigo)
-- `MEAL_LABELS` — "Breakfast", "Lunch", "Dinner"
-- `MEAL_EMOJIS` — 🌅 / ☀️ / 🌙
-- Interfaces: `MealLog`, `DailyScore`, `UserStreak`, `UserBadge`, `Profile`
-- `BadgeSlug` union type
-- `BadgeDefinition` interface
-- `BADGE_DEFINITIONS` array — all 9 badges with slug, name, description, icon emoji, hex color, requirement (streak days)
-
----
-
-### `src/components/diet/meal-card.tsx` — Meal Logging Card
-
-**Type:** Client component
-
-The core interactive element of the app. One instance per meal (breakfast, lunch, dinner).
-
-**Collapsed state:** Shows meal name + emoji, current rating (if logged) as coloured text, points earned, expand chevron.
-
-**Expanded state:**
-- 4 rating buttons in a row: ✅ Healthy (3pts) / 🟡 Medium (2pts) / 🔴 Junk (1pt) / ⏭️ Skipped (3pts)
-- Optional: calories number input
-- Optional: note text area
-- Warning text if `calories > calorieLimit && rating === 'healthy'` ("You might be overeating")
-- "Save" button
-
-**On save:** Calls `saveMeal(...)` server action → shows Sonner toast `"Breakfast saved! +3 pts"` → collapses the card.
-
-Uses `useState` for: expanded state, selected rating, calories, note, loading state.
-
----
-
-### `src/components/diet/score-ring.tsx` — Score Ring
-
-**Type:** Server component (pure, no state)
-
-Renders an SVG circle progress ring. Props: `score` (0–9), `maxScore` (9), `size`, `strokeWidth`.
-
-**Color logic:**
-- 0 pts → grey (`hsl(240 3.7% 15.9%)`)
-- 1–5 pts → amber (`hsl(38 92% 50%)`)
-- 6–8 pts → green (`hsl(142 71% 45%)`)
-- 9 pts → bright green (`hsl(142 76% 55%)`)
-
-Shows `score/maxScore` text in the center. The circle fills proportionally using SVG `stroke-dasharray` and `stroke-dashoffset`.
-
----
-
-### `src/components/diet/streak-display.tsx` — Streak Display
-
-**Type:** Server component
-
-`StreakDisplay` component: Shows flame icon (with `.streak-fire` CSS animation) + `current_streak` number + "day streak" label. Also shows `longest_streak` below.
-
-`StreakGraceDots` component: Shows 3 small dots indicating grace period status. Red dot = bad day used. Grey dot = remaining grace day. Only rendered when `consecutive_bad_days > 0`.
-
----
-
-### `src/components/diet/badge-card.tsx` — Badge Card
-
-**Type:** Server component (no interactivity)
-
-**Earned badge:** Full color with icon emoji, badge name, earned date formatted as "May 4, 2026".
-
-**Locked badge:** Greyed out with opacity, shows requirement ("Reach a 7-day streak").
-
-Props: `definition: BadgeDefinition`, `earned: UserBadge | null`, `currentStreak: number`.
-
----
-
-### `src/components/diet/bottom-nav.tsx` — Bottom Navigation
-
-**Type:** Client component (needs `usePathname` hook to highlight active tab)
-
-Fixed to the bottom of the screen on all dashboard pages. 4 navigation tabs:
+#### `navigation/components/bottom-nav.tsx`
+Fixed bottom navigation. Client component (needs `usePathname`). 5 tabs in the consumer app:
 
 | Icon | Label | URL |
 |---|---|---|
 | Home | Today | `/dashboard` |
-| Calendar | History | `/history` |
+| Utensils | Diet | `/diet` |
+| Dumbbell | Workout | `/workout` |
 | TrendingUp | Progress | `/progress` |
 | Trophy | Badges | `/badges` |
 
-Plus a sign-out button (LogOut icon) that:
-1. Calls Firebase's client-side `signOut(auth)` — clears Firebase session
-2. Calls server `signOut()` action — deletes the `__fv_session` cookie
-3. Redirects to `/login`
-
-Active tab has brighter/larger styling. Inactive tabs are muted.
+Plus sign-out: Firebase `signOut(auth)` + server `signOut()` action.
 
 ---
 
-### `src/components/diet/progress-charts.tsx` — Charts
+### `src/server/session.ts` — Consumer Session Management
 
-**Type:** Client component (`'use client'` — Recharts needs browser DOM)
-
-Receives pre-fetched data as props from the server component. Renders:
-- `BarChart` of daily scores (last 30 days) — bars coloured by score (red < 6, green ≥ 6)
-- `AreaChart` or breakdown for meal distribution (healthy vs medium vs junk vs skipped percentages)
+- `createSession(uid, email)` → signs JWT with `SESSION_SECRET`, sets `__fv_session` cookie (httpOnly, secure, sameSite lax, 14 days, path `/`)
+- `getSession()` → reads cookie → verifies JWT → returns `{uid, email}` or `null`
+- `deleteSession()` → removes cookie
 
 ---
 
-### `src/components/ui/` — shadcn/ui Primitives
+### `src/server/supabase/server.ts` — Server Supabase Client
 
-All these files are copied into the codebase (not a black-box dependency). Fully customisable.
+Creates a `SupabaseClient` using `SUPABASE_SERVICE_ROLE_KEY`. Server-side only — never imported in client components.
 
-| File | Component(s) | What it is |
-|---|---|---|
-| `button.tsx` | `Button` | Styled button with variants: default, outline, ghost, destructive, link. Size variants: default, sm, lg, icon. |
-| `input.tsx` | `Input` | Styled `<input>` text field. |
-| `label.tsx` | `Label` | Styled `<label>` for form fields. |
-| `card.tsx` | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Container box with structured sections. |
-| `badge.tsx` | `Badge` | Small pill/chip for status labels. Variants: default, secondary, destructive, outline. |
-| `progress.tsx` | `Progress` | Horizontal progress bar, 0–100. |
-| `select.tsx` | `Select`, `SelectTrigger`, `SelectContent`, `SelectItem` | Accessible dropdown selector. |
-| `separator.tsx` | `Separator` | Horizontal or vertical dividing line. |
-| `textarea.tsx` | `Textarea` | Multi-line text input. |
-| `sonner.tsx` | `Toaster` | Toast notification container (wraps Sonner library). |
+---
+
+### `src/shared/types/plans.ts` — Plan Type Definitions
+
+All TypeScript types for the plan system:
+- `PlanStatus` = `'draft' | 'published' | 'archived'`
+- `DayOfWeek` = `0 | 1 | 2 | 3 | 4 | 5 | 6` (0=Monday, 6=Sunday)
+- `MealSlot` = `'breakfast' | 'morning_snack' | 'lunch' | 'afternoon_snack' | 'dinner' | 'evening_snack'`
+- `MealPlan`, `MealPlanItem`, `WorkoutPlan`, `WorkoutPlanDay`, `WorkoutPlanExercise`, `FoodItem`
+- `DAY_LABELS` = `['Monday', ..., 'Sunday']`
+- `DAY_SHORT` = `['Mon', ..., 'Sun']`
+- `MEAL_SLOTS` = ordered array of MealSlot values
+- `MEAL_SLOT_LABELS` = `{breakfast: 'Breakfast', ...}`
+- `MEAL_SLOT_EMOJIS` = `{breakfast: '🌅', morning_snack: '🍎', ...}`
+- `DAYS_OF_WEEK` = `[0, 1, 2, 3, 4, 5, 6]`
+- `scaleMacros(food: FoodItem, quantity_g: number)` — scales per-100g values to actual serving size
+- `WORKOUT_EMOJIS`, `WORKOUT_LABELS` — exercise type display helpers
 
 ---
 
@@ -982,290 +991,203 @@ All these files are copied into the codebase (not a black-box dependency). Fully
 turbopack: { root: path.resolve(__dirname) }
 outputFileTracingRoot: path.resolve(__dirname)
 ```
-**Critical.** These two lines anchor the build context to the `crm/` directory. Without them, Turbopack traverses up to the repo root and accidentally tries to compile the consumer app's files (which import `jose` from the consumer's `node_modules`). See section 14 for the full explanation.
+**Critical.** Anchors the build context to the `crm/` directory. Without these, Turbopack can traverse up to the repo root and cause build failures. Do not remove.
 
 #### `crm/tsconfig.json`
-Has `"include": ["src/**/*.ts", "src/**/*.tsx", ...]` — explicitly scoped to `src/` only. This prevents TypeScript from traversing up to parent directories.
-
-#### `crm/pnpm-workspace.yaml`
-Same as consumer app — marks `crm/` as its own standalone pnpm workspace.
+`"include": ["src/**/*.ts", "src/**/*.tsx", ...]` — explicitly scoped to `src/` only.
 
 ---
 
 ### `src/app/layout.tsx` — CRM Root Layout
 
-Minimal HTML shell:
-- No custom fonts (uses system fonts)
-- `robots: 'noindex, nofollow'` — CRM is intentionally hidden from search engines
-- `Toaster position="top-right"` (different from consumer app's `top-center`)
-- No dark mode class — CRM uses light mode (white background, grey text)
+- No custom fonts (system fonts)
+- `robots: 'noindex, nofollow'` — CRM hidden from search engines
+- `Toaster position="top-right"` with `richColors`
+- Light mode (no dark class)
 
 ---
 
-### `src/app/globals.css` — CRM Styles
-
-Light-mode design: white backgrounds, grey borders, slate text, green accents (`green-500` / `green-600`). No dark mode overrides. Clean and minimal — focused on data density.
-
----
-
-### `src/app/page.tsx` — CRM Root Redirect
-
-Server component. Reads `__crm_session` cookie. If session valid → `redirect('/dashboard')`. If not → `redirect('/login')`.
-
----
-
-### `src/app/login/page.tsx` — CRM Login
-
-**URL:** `crm.fitterverse.in/login`
-
-**Type:** Client component
-
-**Layout:** Two-column split screen:
-- **Left panel (dark, branded):** Dark slate-900 background, Fitterverse logo, "Internal Tools" label, tagline about the team
-- **Right panel (white, form):** Email + password fields, "Sign in" button
-
-**Flow:**
-1. Client `POST /api/auth/login` with `{email, password}`
-2. Server looks up email in `crm_users`, verifies password with `verifyPassword()`, checks `is_active`
-3. On success: `createSession()` sets `__crm_session` cookie, server returns `{ok: true, role}`
-4. Client redirects to `/dashboard`
-5. On failure: Sonner toast with error
-
----
-
-### `src/app/(dashboard)/layout.tsx` — CRM Auth Gate
-
-**Type:** Server component. Wraps ALL pages inside the `(dashboard)/` route group.
-
-1. Calls `getSession()` on `__crm_session` cookie
-2. If no session → `redirect('/login')`
-3. Renders: `<div className="flex h-screen"><Sidebar session={session} /><main className="flex-1 overflow-auto">{children}</main></div>`
-
-The `(dashboard)` folder name uses parentheses — this is a Next.js **route group**. The folder name does NOT become part of the URL. Pages inside are at `/dashboard`, `/users`, `/team` — not `/dashboard/dashboard`, etc.
-
----
-
-### `src/app/(dashboard)/dashboard/page.tsx` — CRM Dashboard
-
-**URL:** `crm.fitterverse.in/dashboard`
-
-**Type:** Server component. Has `export const dynamic = 'force-dynamic'` — disables caching so stats are always fresh.
-
-**4 stat cards:**
-| Card | Data source | What it shows |
-|---|---|---|
-| Total Users | `COUNT(*)` on `profiles` | Total registered consumer users |
-| Active Today | `COUNT(*)` on `daily_scores WHERE date = today` | Users who logged at least one meal today |
-| Total Meals Logged | `COUNT(*)` on `meal_logs` | All-time total meals logged across all users |
-| Users Active Today % | (activeToday / totalUsers) × 100 | Engagement percentage for today |
-
-**Top 5 Streaks:** Queries `user_streaks` ordered by `current_streak DESC LIMIT 5`. Shows user ID (first 8 chars) + current streak.
-
-**Greeting:** Uses `session.full_name.split(' ')[0]` to get first name of the logged-in CRM user.
-
-**Access:** All roles.
-
----
-
-### `src/app/(dashboard)/users/page.tsx` — User List
-
-**URL:** `crm.fitterverse.in/users`
-
-**Type:** Server component
-
-**What's on screen:**
-- Search box (URL param `?q=searchterm`)
-- Table of users: Name + Email | Current Streak | Last Active (date from `user_streaks.last_updated`) | Onboarded (Yes/No) | "View" link
-
-**Search:** Uses Supabase `.ilike('email', '%q%')` and `.ilike('full_name', '%q%')` — case-insensitive partial match. Triggered by `?q=` URL parameter (no JavaScript needed — server renders filtered results).
-
-**Data:** Join of `profiles` + `user_streaks` table (matched on `profiles.id = user_streaks.user_id`).
-
-**Access:** All roles.
-
----
-
-### `src/app/(dashboard)/users/[id]/page.tsx` — User Detail
-
-**URL:** `crm.fitterverse.in/users/[firebase-uid]`
-
-**Type:** Server component. The `[id]` in the folder name is a dynamic segment — whatever is in the URL becomes the `id` parameter.
+### `src/app/(dashboard)/users/[id]/page.tsx` — User Detail (updated)
 
 **What's on screen:**
 
 Left column:
-- **Streak card:** current streak + longest streak + streak start date
-- **Profile details:** Diet goal, age, weight/height (if provided), activity level, dietary restrictions
-- **Badges earned:** All badges this user has, with icons and earned dates
+- Streak card (current + longest)
+- Profile details (goal, age, weight/height, activity level)
+- Badges earned
 
 Right column:
-- **Last 14 days score grid:** 14 coloured boxes, each showing the day's total points. Colour-coded green/amber/red. Missing days shown as light grey.
-- **Recent meals:** Last 7 days of meals grouped by date. Each meal shown as a coloured pill (Healthy/Medium/Junk/Skipped).
+- **Last 14 days score grid** — 14 coloured boxes, green/amber/red
+- **Meal Plans card** — list of plans with status badges. Each row is a `<Link href="/users/[id]/meal-plan/[planId]">` (clickable to edit). "+ New Plan" button → `/users/[id]/meal-plan/new`
+- **Workout Plans card** — same pattern with `<Link href="/users/[id]/workout-plan/[planId]">`. "+ New Plan" → `/users/[id]/workout-plan/new`
+- **Recent Meals** — last 7 days of meal logs
 
-**Data:** 5 parallel queries via `Promise.all`:
+---
+
+### `src/app/(dashboard)/users/[id]/meal-plan/new/page.tsx` — New Meal Plan
+Server component. Fetches user profile, renders `<MealPlanBuilder userId={id} userName={...} />`.
+
+### `src/app/(dashboard)/users/[id]/meal-plan/[planId]/page.tsx` — Edit Meal Plan
+Server component. Fetches user profile + existing plan (`getMealPlanWithItems`), renders builder in edit mode:
+```tsx
+<MealPlanBuilder
+  userId={id}
+  userName={...}
+  planId={planId}
+  initialTitle={planData.plan.title}
+  initialWeekStart={planData.plan.week_start}
+  initialItems={planData.items}
+/>
+```
+
+### `src/app/(dashboard)/users/[id]/workout-plan/new/page.tsx` — New Workout Plan
+Same pattern, renders `<WorkoutPlanBuilder userId={id} userName={...} />`.
+
+### `src/app/(dashboard)/users/[id]/workout-plan/[planId]/page.tsx` — Edit Workout Plan
+Server component. Fetches plan data, renders builder:
+```tsx
+<WorkoutPlanBuilder
+  userId={id} userName={...}
+  planId={planId}
+  initialTitle={planData.plan.title}
+  initialWeekStart={planData.plan.week_start}
+  initialDays={planData.days}
+/>
+```
+
+---
+
+### `src/app/api/foods/search/route.ts` — Food Search API
+
+**GET `/api/foods/search?q=chicken&limit=8`**
+
+Called by the meal plan builder's food autocomplete. Returns empty array for empty query. Uses Supabase `.ilike('name', '%q%')` for case-insensitive partial match.
+
+Response shape:
+```json
+[{ "id": 123, "name": "Chicken, broiler", "food_group": "Poultry", "energy_kcal": 215, "protein_g": 27.3, "fat_g": 11.1, "carbs_g": 0, "fiber_g": 0 }]
+```
+
+**Why not full-text search?** `ilike` is sufficient for a 542-food database. GIN full-text index exists on `name` for future use.
+
+---
+
+### `src/features/plans/components/meal-plan-builder.tsx` — Meal Plan Builder
+
+**Type:** Client component (`'use client'`)
+
+**What it does:** A 7-column × 6-row interactive grid for building a week of meal plans.
+
+**Columns:** Mon–Sun (7 days). **Rows:** Breakfast, Morning Snack, Lunch, Afternoon Snack, Dinner, Evening Snack.
+
+**Key state:**
+- `weekStart: Date` — the Monday of the plan week
+- `title: string` — plan title
+- `grid: GridState` — `Record<"day-slot", GridItem[]>` — all food items in all cells
+- `activeCell: CellKey | null` — which cell has the food search open
+
+**MealCell component:** Each cell shows food chips (name + quantity + kcal). Clicking a chip's × removes it. "Add" button opens `FoodSearchInline` inline.
+
+**FoodSearchInline component:** Debounced (220ms) `fetch` to `/api/foods/search`. Results shown inline (not absolute-positioned — avoids overflow clipping from `overflow-x-auto` container). After selecting a food, shows quantity input with live kcal preview. Pressing Enter or clicking "Add" inserts into the grid.
+
+**Day totals row:** Summed kcal + P/C/F per column, shown at the bottom.
+
+**Edit mode (when `planId` is provided):**
+- `initialItems` pre-populates the grid
+- Week navigation arrows are hidden (you can't change the week of an existing plan)
+- `isPastDay(weekStartStr, dayIndex)` is called per column header and per cell
+- Past day columns: header shows "past" label + 40% opacity, cells have `bg-gray-50/60` background, `MealCell` receives `isLocked=true` → no + Add button, no × remove, food chips use gray colour instead of blue
+- **Only editable days are saved:** `editableDays = days.filter(d => !isPastDay(...))`. The `updateMealPlanAction` only deletes+reinserts rows for `editableDays`, leaving past days' DB rows untouched.
+
+**Save flow:**
+```ts
+if (isEditing && planId) {
+  await updateMealPlanAction({ planId, userId, title, weekStart, status, items, editableDays })
+} else {
+  await saveMealPlanAction({ userId, title, weekStart, status, items })
+}
+```
+On success: Sonner toast + `router.push('/users/${userId}')`.
+
+---
+
+### `src/features/plans/components/workout-plan-builder.tsx` — Workout Plan Builder
+
+**Type:** Client component
+
+7 vertical day cards, each containing:
+- Day header: short day name + date + optional label input + Rest Day toggle (Moon icon)
+- Exercise rows: exercise name, sets, reps (text), rest seconds, duration minutes, notes
+
+**Rest Day toggle:** When activated, clears all exercises for that day and shows a dimmed card.
+
+**Edit mode (when `planId` is provided):**
+- `initialDays` pre-populates all 7 day cards with labels + exercises
+- `isPastDay()` is computed per day card
+- Past days: card has 40% opacity, all inputs are `disabled`, no "Add exercise" button, no × remove on exercise rows, day header shows "past" label
+- Week navigation hidden when editing
+
+**DayCard + ExerciseRow** are sub-components. `isLocked` prop threads through both.
+
+---
+
+### `src/features/plans/server/actions.ts` — Plan Server Actions
+
+All functions call `getSession()` first. Unauthorized → throws.
+
+**`saveMealPlanAction(input)`**
+1. Inserts `meal_plans` row (user_id, created_by=session.id, title, week_start, status)
+2. Batch-inserts all `meal_plan_items` with `meal_plan_id`
+3. `revalidatePath('/users/${userId}')`
+
+**`updateMealPlanAction(input)`** (edit mode)
+1. Updates `meal_plans` header (title, status, updated_at)
+2. For `editableDays` only: deletes existing items → re-inserts new items
+3. Past days' rows are never touched
+
+**`saveWorkoutPlanAction(input)`**
+1. Inserts `workout_plans` row
+2. For each of 7 days: inserts `workout_plan_days` row → inserts exercises
+
+**`updateWorkoutPlanAction(input)`** (edit mode)
+1. Updates `workout_plans` header
+2. For `editableDays`: fetches existing day row IDs → deletes exercises → deletes day rows → re-inserts days + exercises
+
+---
+
+### `src/features/plans/server/queries.ts` — Plan Queries (CRM)
+
+- `getMealPlanWithItems(planId)` → plan header + all items ordered by `display_order`
+- `getWorkoutPlanWithDays(planId)` → plan + days + exercises (grouped by day ID)
+- `getUserMealPlans(userId)` → list of last 20 plans (id, title, week_start, status, created_at)
+- `getUserWorkoutPlans(userId)` → same for workout plans
+
+---
+
+### `src/features/users/server/queries.ts` — User Queries (CRM)
+
+`getUserDetail(id)` — 5 parallel Supabase queries:
 1. `profiles` — profile data
-2. `user_streaks` — streak data
-3. `user_badges` — earned badges
-4. `meal_logs` last 30 rows — meal history
-5. `daily_scores` last 14 rows — score grid
-
-**Access:** All roles.
+2. `user_streaks` — streak state
+3. `user_badges` — all earned badges
+4. `meal_logs` last 30 rows
+5. `daily_scores` last 14 rows
 
 ---
 
-### `src/app/(dashboard)/team/page.tsx` — Team Management
+### `src/server/session.ts` — CRM Session Management
 
-**URL:** `crm.fitterverse.in/team`
-
-**Type:** Server component
-
-**Access control:** Checks `session.role === 'admin'`. If not admin → `redirect('/dashboard')`.
-
-**What's on screen:**
-- "Add team member" button (links to `/team/new`)
-- Table of all CRM users: Name | Email | Role (colour-coded badge) | Status (Active/Inactive green/red pill) | Added date | Edit controls
-
-**Edit controls:** Each row contains a `<RoleToggle>` client component for inline editing.
-
----
-
-### `src/app/(dashboard)/team/role-toggle.tsx` — Inline Role Editor
-
-**Type:** Client component
-
-Rendered inside each row of the team table. Contains:
-- Role dropdown (select) — current role pre-selected
-- "Save Role" button
-- Activate / Deactivate button (toggles `is_active`)
-
-**On change:** `PATCH /api/team` with `{id, role}` or `{id, is_active}` → Sonner toast → `router.refresh()` to reload the server component data.
-
----
-
-### `src/app/(dashboard)/team/new/page.tsx` — Add Team Member
-
-**URL:** `crm.fitterverse.in/team/new`
-
-**Type:** Client component
-
-**Fields:**
-- Full name (required)
-- Work email (required, type="email")
-- Role (dropdown: Admin / Master Coach / Nutritionist / Trainer / Sales) — default: Nutritionist
-- Temporary password (required, min 8 chars)
-
-**On submit:** `POST /api/team` → server hashes password, inserts `crm_users` row → Sonner success toast → `router.push('/team')`.
-
-**Note for admins:** Password shown as hint — "Share this with the team member — they can't change it yet."
-
----
-
-### `src/app/api/auth/login/route.ts` — CRM Login API
-
-**POST `/api/auth/login`**
-
-1. Reads `{email, password}` from request body
-2. Queries `crm_users WHERE email = ?` — returns password_hash, full_name, role, is_active, id
-3. If not found → `{error: 'Invalid email or password'}` (vague on purpose — don't reveal whether email exists)
-4. If `is_active = false` → `{error: 'Account is deactivated'}`
-5. `verifyPassword(password, stored_hash)` — if false → same vague error
-6. `createSession({id, email, full_name, role})` — sets `__crm_session` JWT cookie
-7. Returns `{ok: true, role}`
-
----
-
-### `src/app/api/auth/logout/route.ts` — CRM Logout API
-
-**POST `/api/auth/logout`**
-
-Calls `deleteSession()` → removes `__crm_session` cookie → returns `{ok: true}`.
-
----
-
-### `src/app/api/team/route.ts` — Team CRUD API
-
-All requests check `session.role === 'admin'`. Non-admins get `403 Forbidden`.
-
-**GET `/api/team`** → returns all rows from `crm_users` table (without `password_hash`).
-
-**POST `/api/team`** — create new team member:
-1. Validates: email, full_name, role, password all present
-2. Validates role is one of the 5 allowed values
-3. `hashPassword(password)` → `"salt:hash"` string
-4. Inserts `crm_users` row
-5. Returns `{ok: true, user: {id, email, full_name, role}}`
-
-**PATCH `/api/team`** — update team member:
-- Body `{id, role}` → updates role
-- Body `{id, is_active}` → activates/deactivates
-- Returns `{ok: true}`
-
----
-
-### `src/components/sidebar.tsx` — CRM Sidebar
-
-**Type:** Client component (needs `usePathname` for active link highlighting)
-
-**Layout:** Fixed left sidebar, full screen height.
-
-**Top section:**
-- Fitterverse logo (green "F" mark)
-- "CRM" label in slate text
-
-**Navigation links (role-filtered):**
-
-| Link | Icon | Roles that see it |
-|---|---|---|
-| Dashboard | LayoutDashboard | All roles |
-| Users | Users | All roles |
-| Team | Shield | Admin only |
-
-Active link: green background with green text. Inactive: grey text.
-
-**Bottom section:**
-- Logged-in user's full name
-- Role label (colour-coded pill: admin=purple, master_coach=blue, nutritionist=green, trainer=orange, sales=red)
-- Sign out button → `POST /api/auth/logout` → `window.location.href = '/login'`
-
----
-
-### `src/lib/auth.ts` — Password Hashing
-
-```ts
-hashPassword(password: string) → "salt:hash"
-```
-1. `randomBytes(16).toString('hex')` → 32-char hex salt
-2. `scryptSync(password, salt, 64)` → 64-byte hash buffer
-3. Returns `"${salt}:${hash.toString('hex')}"`
-
-```ts
-verifyPassword(password: string, stored: string) → boolean
-```
-1. Splits `stored` on `:` → `[salt, hash]`
-2. `scryptSync(password, salt, 64)` → incoming hash buffer
-3. `timingSafeEqual(incoming, Buffer.from(hash, 'hex'))` → boolean
-
-`timingSafeEqual` is important — it prevents timing attacks where an attacker can determine if partial passwords match by measuring response time.
-
----
-
-### `src/lib/session.ts` — CRM Session Management
-
-Same pattern as consumer app but:
-- Cookie name: `__crm_session`
-- Secret env var: `CRM_SESSION_SECRET`
-- JWT payload: `{id, email, full_name, role}` (not just uid+email)
+Same pattern as consumer app:
+- Cookie: `__crm_session`
+- Secret: `CRM_SESSION_SECRET`
+- JWT payload: `{id, email, full_name, role}`
 - Expiry: 14 days
 
-Exports: `createSession(payload)`, `getSession()` → `CrmSession | null`, `deleteSession()`.
-
-Types exported: `CrmRole` (union type), `CrmSession` (interface).
-
 ---
 
-### `src/lib/supabase.ts` — CRM Supabase Client
+### `src/server/supabase.ts` — CRM Supabase Client
 
-Single Supabase client using `SUPABASE_SERVICE_ROLE_KEY`. Simpler than the consumer app (no SSR package needed — CRM doesn't have client-side Supabase calls).
+Single Supabase client using `SUPABASE_SERVICE_ROLE_KEY`. Simpler than consumer app (no SSR helpers needed).
 
 ---
 
@@ -1303,11 +1225,9 @@ BROWSER                          SERVER (Next.js)              EXTERNAL SERVICES
    │     If new → /onboarding           │                              │
 ```
 
-**Subsequent requests:** Every page load, the server components call `getSession()` which reads and verifies the `__fv_session` cookie. If valid, `uid` is extracted and used for all Supabase queries. If invalid/expired → `redirect('/login')`.
+**Subsequent requests:** Every page load, server components call `getSession()` which reads and verifies the `__fv_session` cookie. Valid → `uid` extracted for all Supabase queries. Invalid/expired → `redirect('/login')`.
 
-**Google sign-in:** Same flow, but step 1 uses `signInWithPopup(auth, googleProvider)` which opens a Google popup. Firebase handles the OAuth exchange and returns the same uid/email.
-
-**Sign out:** `BottomNav` calls Firebase's `signOut(auth)` (clears Firebase session) + server `signOut()` action (deletes `__fv_session` cookie).
+**Sign out:** BottomNav calls Firebase's `signOut(auth)` + server `signOut()` action.
 
 ---
 
@@ -1324,121 +1244,139 @@ BROWSER                          SERVER (Next.js)              SUPABASE
    │                                    │  ◄───────────────────────
    │                                    │                          │
    │                                    │  3. Check is_active      │
-   │                                    │                          │
    │                                    │  4. verifyPassword()     │
    │                                    │     (scrypt comparison)  │
-   │                                    │                          │
    │                                    │  5. Sign JWT, set cookie │
    │                                    │     __crm_session (14d)  │
    │  6. {ok: true, role}               │                          │
    │  ◄──────────────────────────────────                          │
-   │                                    │                          │
    │  7. router.push('/dashboard')      │                          │
 ```
 
 **No Firebase involved.** CRM authentication is entirely Supabase + custom JWT.
 
-**Sign out:** `POST /api/auth/logout` → delete `__crm_session` → `window.location.href = '/login'`.
-
 ---
 
 ## 9. How Data Flows — Step by Step
 
-### Logging a Meal (the core flow)
+### Logging a Meal
 
 ```
-1.  User opens fitterverse.in/dashboard
-    → Server reads __fv_session cookie → uid = "Ua3mK9..."
-    → Queries today's meals, score, streak in parallel
-    → Renders page with 3 MealCard components
+1.  User opens /diet page
+    → Server reads __fv_session → uid
+    → getActiveMealPlan() + getTodayData() + profile in parallel
+    → If published plan for current week: renders TodayPlanSnippet with today's items
+    → Renders 3 MealCard components
 
-2.  User taps "Breakfast" card → it expands (client-side useState)
+2.  User taps "Breakfast" card → expands (useState)
 
-3.  User taps "Healthy" button → rating state = 'healthy'
+3.  User taps "Healthy" → rating = 'healthy'
 
-4.  User types "420" in the calories field (optional)
+4.  User taps "Save"
 
-5.  User taps "Save"
-
-────── CLIENT SIDE ──────
-6.  MealCard calls:
-    saveMeal({ meal_type: 'breakfast', rating: 'healthy', calories: 420, note: null, date: '2026-05-04' })
-
-────── SERVER SIDE (actions.ts: saveMeal) ──────
-7.  requireSession() → uid = "Ua3mK9..."
-8.  mealDate = '2026-05-04' (format today)
-9.  points = POINTS['healthy'] = 3
-
-10. Supabase UPSERT into meal_logs:
-    { user_id: uid, date: '2026-05-04', meal_type: 'breakfast', rating: 'healthy', calories: 420, points: 3 }
+────── SERVER SIDE (saveMeal) ──────
+5.  Supabase UPSERT into meal_logs
     ON CONFLICT (user_id, date, meal_type) DO UPDATE
 
-────── SERVER SIDE (recomputeDailyScore) ──────
-11. Query ALL meal_logs for uid + '2026-05-04':
-    → breakfast: 3pts
-    → lunch: 2pts (previously logged)
-    → dinner: not yet logged
-    → totalPoints = 5, mealsLogged = 2, isStreakDay = false (5 < 6)
+6.  recomputeDailyScore → sums today's points → upserts daily_scores
+    → if today: updateStreak → calculateNewStreak() → update user_streaks
+    → getBadgesToAward() → insert any new badges
 
-12. Supabase UPSERT into daily_scores:
-    { user_id: uid, date: '2026-05-04', total_points: 5, meals_logged: 2, is_streak_day: false }
-
-13. date == today → call updateStreak(uid, '2026-05-04', 5)
-
-────── SERVER SIDE (updateStreak) ──────
-14. Query user_streaks WHERE user_id = uid
-    → { current_streak: 7, consecutive_bad_days: 0, last_updated: '2026-05-03', ... }
-
-15. last_updated != today → proceed with update
-
-16. calculateNewStreak(streak, 5, today):
-    → 5 pts is a bad day (< 6)
-    → new consecutive_bad_days = 0 + 1 = 1
-    → 1 < 3 → streak NOT broken
-    → returns { current_streak: 7, consecutive_bad_days: 1, last_updated: '2026-05-04', ... }
-
-17. Supabase UPDATE user_streaks SET ...
-
-18. Query user_badges to get alreadyEarned slugs
-19. getBadgesToAward(7, alreadyEarned, false, false):
-    → streak_7 already earned → no new badges
-    → returns []
-
-────── BACK TO saveMeal ──────
-20. revalidatePath('/dashboard') — invalidates Next.js page cache
-21. revalidatePath('/history')
-22. Returns { success: true }
+7.  revalidatePath('/dashboard') + revalidatePath('/diet')
 
 ────── CLIENT SIDE ──────
-23. Toast: "Breakfast saved! +3 pts"
-24. MealCard collapses, shows "Healthy ✓ 3 pts"
-25. Dashboard re-renders with updated data (via Next.js cache revalidation)
+8.  Toast: "Breakfast saved! +3 pts"
+9.  MealCard collapses
 ```
 
 ---
 
-### CRM Team Member Viewing a User
+### CRM Nutritionist Creating a Meal Plan
 
 ```
-1. CRM user at crm.fitterverse.in/users/Ua3mK9... (clicks "View" link)
+1.  Nutritionist navigates to crm.fitterverse.in/users/[uid]/meal-plan/new
 
-2. Server component runs:
-   → Read __crm_session cookie → {id, role: 'nutritionist', ...}
-   → (dashboard)/layout.tsx: session valid → render page
+2.  Server: getUserDetail([uid]) → renders MealPlanBuilder
+    (no initialItems → empty grid, week defaults to next week's Monday)
 
-3. users/[id]/page.tsx receives params.id = "Ua3mK9..."
+3.  Nutritionist:
+    - Types plan title
+    - Searches "paneer" in Monday Breakfast cell
+    - GET /api/foods/search?q=paneer → returns IFCT matches
+    - Selects "Paneer, cottage cheese" → types 100g
+    - Live preview: ~265 kcal
+    - Clicks "Add" → food chip appears in cell
+    - Repeats for all 7 days × 6 slots
+    - Clicks "Publish to User"
 
-4. 5 parallel Supabase queries:
-   → profiles WHERE id = 'Ua3mK9...'
-   → user_streaks WHERE user_id = 'Ua3mK9...'
-   → user_badges WHERE user_id = 'Ua3mK9...' ORDER BY earned_at
-   → meal_logs WHERE user_id = 'Ua3mK9...' ORDER BY date DESC LIMIT 30
-   → daily_scores WHERE user_id = 'Ua3mK9...' ORDER BY date DESC LIMIT 14
+4.  handleSave('published'):
+    → Collects all grid items into flat array
+    → saveMealPlanAction({ userId, title, weekStart, status: 'published', items })
 
-5. Page renders with all data — profile card, streak, badges, 14-day grid, recent meals
+5.  Server inserts meal_plans row → batch-inserts meal_plan_items
+    → revalidatePath('/users/[uid]')
+    → Client: toast "Plan published to user!" → router.push('/users/[uid]')
 
-6. CRM user can see but NOT modify consumer user data
-   (there are no edit/delete actions on this page)
+6.  Consumer user opens app → /diet page:
+    → getActiveMealPlan() finds this plan (published, current week)
+    → TodayPlanSnippet shows today's assigned meals at top of page
+```
+
+---
+
+### CRM Editing an Existing Plan (Past Day Locking)
+
+```
+1.  Today is Wednesday, May 8. Plan week is Mon May 6 – Sun May 12.
+
+2.  Nutritionist clicks on the plan row in user detail page
+    → navigates to /users/[uid]/meal-plan/[planId]
+
+3.  Server: getMealPlanWithItems(planId) → passes initialItems to builder
+    Grid pre-populated from DB
+
+4.  isPastDay is evaluated for each column:
+    - Mon (day 0): dayDate = May 6. isBefore(May 6, May 8 start) = true → LOCKED
+    - Tue (day 1): dayDate = May 7. isBefore(May 7, May 8 start) = true → LOCKED
+    - Wed (day 2): dayDate = May 8. isBefore(May 8, May 8 start) = false → editable
+    - Thu–Sun: all editable
+
+5.  Mon and Tue columns: gray background, "past" label, no + Add, no × remove
+
+6.  Nutritionist modifies Wed–Sun cells
+
+7.  handleSave:
+    → editableDays = [2, 3, 4, 5, 6]
+    → updateMealPlanAction({ planId, editableDays: [2,3,4,5,6], items, ... })
+
+8.  Server:
+    → UPDATE meal_plans SET title, status, updated_at
+    → DELETE meal_plan_items WHERE meal_plan_id = planId AND day_of_week IN (2,3,4,5,6)
+    → INSERT new items for days 2–6 only
+    → Mon and Tue rows untouched
+```
+
+---
+
+### Consumer Viewing Their Plan
+
+```
+1.  User opens /workout page (or /diet page)
+
+2.  Server: getActiveWorkoutPlan() → most recent published workout plan
+    → is it this week? isThisWeek(parseISO(plan.week_start), { weekStartsOn: 1 })
+
+3.  If yes: todayDow = ((now.getDay() + 6) % 7)
+    todayPlanDay = days.find(d => d.day_of_week === todayDow)
+
+4.  TodayWorkoutSnippet rendered at top:
+    - Rest day: 😴 "Rest Day"
+    - Active day: numbered list of exercises (sets × reps, rest)
+
+5.  User taps "Full week plan" button at bottom
+    → ExpandableSection opens
+    → WorkoutPlanView renders (already in DOM as server-rendered children)
+    → No network request — zero re-fetch
 ```
 
 ---
@@ -1447,104 +1385,46 @@ BROWSER                          SERVER (Next.js)              SUPABASE
 
 ### How Firebase App Hosting Works
 
-1. You push code to the `main` branch on GitHub
-2. Firebase App Hosting detects the push (via GitHub webhook)
-3. Firebase starts a Cloud Build job in Google Cloud
-4. Cloud Build: clones the repo → `cd crm/` (or `product/`) → `pnpm install` → `pnpm build` → creates a Docker image
-5. The image is deployed to Google Cloud Run (serverless containers)
-6. Firebase routes traffic from the custom domain to the Cloud Run container
-7. New deploys are gradual (traffic shifts without downtime)
+1. Push code to `main` branch on GitHub
+2. Firebase App Hosting detects push (GitHub webhook)
+3. Firebase starts a Cloud Build job: `cd product/` (or `crm/`) → `pnpm install` → `pnpm build` → Docker image
+4. Image deployed to Google Cloud Run (serverless containers)
+5. Firebase routes traffic from custom domain to Cloud Run container
+6. New deploys shift traffic gradually (no downtime)
 
-**Both apps build from the same repo.** Each backend (`fitterverse-app` and `fitterverse-crm`) has a `rootDir` configured in Firebase that tells it which subdirectory to build from.
+**Both apps build from the same repo.** Each backend has a `rootDir` configured pointing to its subdirectory.
+
+---
+
+### Manual Rollout Trigger
+
+Even with auto-deploy on push, you can manually kick off a build:
+
+```bash
+firebase apphosting:rollouts:create fitterverse-app --git-branch main --project fitterverse --force
+firebase apphosting:rollouts:create fitterverse-crm --git-branch main --project fitterverse --force
+```
+
+Both run in ~5–10 minutes. Track at: `https://console.firebase.google.com/project/fitterverse/apphosting`
 
 ---
 
 ### `apphosting.yaml` — The Deployment Config
 
-**Consumer app** (`product/apphosting.yaml`):
-```yaml
-runConfig:
-  runtime: nodejs20       # Node.js 20 LTS
-  concurrency: 100        # Handle 100 simultaneous requests per instance
-  cpu: 1                  # 1 CPU core
-  memoryMiB: 512          # 512 MB RAM
+**Consumer app** (`product/apphosting.yaml`): nodejs20, 1 CPU, 512 MB, 100 concurrent requests. Secrets: all Firebase vars + Supabase URL at BUILD+RUNTIME; service role key + session secret at RUNTIME only.
 
-env:
-  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    secret: NEXT_PUBLIC_FIREBASE_API_KEY
-    availability: [BUILD, RUNTIME]  # BUILD needed because variable is embedded in browser bundle
-  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    secret: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    secret: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    secret: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    secret: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    secret: NEXT_PUBLIC_FIREBASE_APP_ID
-    availability: [BUILD, RUNTIME]
-  - variable: NEXT_PUBLIC_SUPABASE_URL
-    secret: NEXT_PUBLIC_SUPABASE_URL
-    availability: [BUILD, RUNTIME]  # BUILD because used in client-side code
-  - variable: SUPABASE_SERVICE_ROLE_KEY
-    secret: SUPABASE_SERVICE_ROLE_KEY
-    availability: [RUNTIME]         # RUNTIME only — server-side only, never in browser
-  - variable: SESSION_SECRET
-    secret: SESSION_SECRET
-    availability: [RUNTIME]         # RUNTIME only — used to sign cookies
-```
+**CRM** (`crm/apphosting.yaml`): nodejs20, 1 CPU, 512 MB, 80 concurrent requests. Secrets: Supabase URL at BUILD+RUNTIME; service role key + CRM session secret at RUNTIME only.
 
-**CRM app** (`crm/apphosting.yaml`):
-```yaml
-runConfig:
-  runtime: nodejs20
-  concurrency: 80
-  cpu: 1
-  memoryMiB: 512
-
-env:
-  - variable: NEXT_PUBLIC_SUPABASE_URL
-    secret: NEXT_PUBLIC_SUPABASE_URL
-    availability: [BUILD, RUNTIME]
-  - variable: SUPABASE_SERVICE_ROLE_KEY
-    secret: SUPABASE_SERVICE_ROLE_KEY
-    availability: [RUNTIME]
-  - variable: CRM_SESSION_SECRET
-    secret: CRM_SESSION_SECRET
-    availability: [RUNTIME]
-```
-
-**Rule:** Any variable starting with `NEXT_PUBLIC_` is embedded into the browser JavaScript bundle at BUILD time. If its `availability` doesn't include `BUILD`, the variable will be `undefined` in production even if it's set at runtime. This caused a real deployment failure once — now all `NEXT_PUBLIC_*` vars have `[BUILD, RUNTIME]`.
-
----
-
-### Secrets Management
-
-All sensitive values are stored in **Google Cloud Secret Manager** (accessed via Firebase Console or `firebase apphosting:secrets:grantaccess`).
-
-**How secrets work:**
-1. Secret is created once: `firebase apphosting:secrets:set SECRET_NAME`
-2. The `apphosting.yaml` references the secret by name
-3. At build/runtime, Firebase injects the secret as an environment variable
-4. The secret value is never committed to git or visible in logs
-
-**Why this matters:** If someone reads the git repo (even private repos can be compromised), they don't get any sensitive keys. All they see is secret names, not values.
+**Critical rule:** Any `NEXT_PUBLIC_*` variable is embedded at BUILD time. It must have `availability: [BUILD, RUNTIME]` or it will be `undefined` in production.
 
 ---
 
 ### Deployment URLs
 
-| App | Firebase Backend ID | Hosted URL (auto) | Custom Domain |
+| App | Firebase Backend | Auto URL | Custom Domain |
 |---|---|---|---|
 | Consumer | `fitterverse-app` | https://fitterverse-app--fitterverse.us-central1.hosted.app | https://fitterverse.in |
 | CRM | `fitterverse-crm` | https://fitterverse-crm--fitterverse.us-central1.hosted.app | https://crm.fitterverse.in |
-
-Both custom domains are verified in Firebase Console and have auto-provisioned SSL certificates.
 
 ---
 
@@ -1552,32 +1432,30 @@ Both custom domains are verified in Firebase Console and have auto-provisioned S
 
 ### Consumer App Variables
 
-| Variable | Browser or Server? | What it is | Secret Manager name |
-|---|---|---|---|
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Browser | Firebase project API key (safe to expose) | `NEXT_PUBLIC_FIREBASE_API_KEY` |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Browser | Firebase Auth domain (`fitterverse.firebaseapp.com`) | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Browser | Firebase project ID (`fitterverse`) | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Browser | Firebase Storage bucket | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Browser | Firebase project number | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Browser | Firebase App identifier | `NEXT_PUBLIC_FIREBASE_APP_ID` |
-| `NEXT_PUBLIC_SUPABASE_URL` | Browser + Server | Supabase project URL | `NEXT_PUBLIC_SUPABASE_URL` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Full DB access key — **never expose** | `SUPABASE_SERVICE_ROLE_KEY` |
-| `SESSION_SECRET` | Server only | 32-char random string for signing JWTs | `SESSION_SECRET` |
+| Variable | Available where | What it is |
+|---|---|---|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Browser + Server | Firebase project API key (safe to expose) |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Browser + Server | `fitterverse.firebaseapp.com` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Browser + Server | `fitterverse` |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Browser + Server | Firebase Storage bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Browser + Server | Firebase project number |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Browser + Server | Firebase App identifier |
+| `NEXT_PUBLIC_SUPABASE_URL` | Browser + Server | `https://wwzabsfwfojsizexptxe.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** | Full DB access key — **never expose** |
+| `SESSION_SECRET` | **Server only** | 32-char random string for signing JWTs |
 
 ### CRM App Variables
 
-| Variable | Browser or Server? | What it is | Secret Manager name |
-|---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Server (treated as public) | Supabase project URL | `NEXT_PUBLIC_SUPABASE_URL` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Full DB access key | `SUPABASE_SERVICE_ROLE_KEY` |
-| `CRM_SESSION_SECRET` | Server only | 32-char string for CRM JWT signing (different from `SESSION_SECRET`) | `CRM_SESSION_SECRET` |
+| Variable | Available where | What it is |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Server | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** | Full DB access key |
+| `CRM_SESSION_SECRET` | **Server only** | Different from `SESSION_SECRET` — separate key for CRM JWTs |
 
-### `.env.local` Template (for local development)
-
-Both apps need a `.env.local` file in their directory. This file is git-ignored (never committed). Copy from `.env.local.example`.
+### `.env.local` for Local Development
 
 ```bash
-# Consumer app: product/.env.local
+# product/.env.local
 NEXT_PUBLIC_FIREBASE_API_KEY=...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=fitterverse.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=fitterverse
@@ -1588,7 +1466,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://wwzabsfwfojsizexptxe.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 SESSION_SECRET=<any-32-char-random-string>
 
-# CRM: crm/.env.local
+# crm/.env.local
 NEXT_PUBLIC_SUPABASE_URL=https://wwzabsfwfojsizexptxe.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 CRM_SESSION_SECRET=<different-32-char-random-string>
@@ -1599,63 +1477,51 @@ CRM_SESSION_SECRET=<different-32-char-random-string>
 ## 12. Running Locally
 
 ### Prerequisites
-- Node.js 20 or higher: `node --version` should say `v20.x.x` or higher
+- Node.js 20+: `node --version` → `v20.x.x` or higher
 - pnpm: `npm install -g pnpm`
 - Git
-- Access to the Supabase project (or your own Supabase project with the schema applied)
+- Access to the Supabase project (the URL + service role key)
 
----
-
-### Running the Consumer App
+### Consumer App
 
 ```bash
-# 1. Clone the repo
 git clone https://github.com/fitterverse/Fitterverse.git
 cd Fitterverse/product
-
-# 2. Install dependencies (reads package.json, creates node_modules/)
 pnpm install
+cp .env.local.example .env.local   # fill in all values
 
-# 3. Set up database (one time only)
-# Go to: https://supabase.com/dashboard → your project → SQL Editor
-# Paste the contents of product/supabase/schema.sql and run it
+# One-time database setup (in Supabase SQL Editor):
+# 1. Run product/supabase/schema.sql
+# 2. Run product/supabase/migrations/002_add_food_items.sql
+# 3. Run product/supabase/migrations/003_add_plan_tables.sql
+# 4. Seed food data: npx tsx scripts/seed-food-items.ts (needs ifct2017.json — see script)
 
-# 4. Create local secrets file
-cp .env.local.example .env.local
-# Fill in all the values in .env.local
-
-# 5. Start development server (hot reload, shows changes instantly)
-pnpm dev
-# App runs at http://localhost:3000
+pnpm dev  # → http://localhost:3000
 ```
 
-### Running the CRM
+### CRM
 
 ```bash
 cd Fitterverse/crm
-
 pnpm install
 
-# Set up CRM database (one time only)
-# Go to Supabase SQL Editor
-# Paste contents of crm/supabase/crm_migration.sql and run it
-# This creates crm_users table AND seeds the admin account
+# Create crm/.env.local with SUPABASE vars + CRM_SESSION_SECRET
 
-# Create local secrets file
-# Create crm/.env.local with:
-#   NEXT_PUBLIC_SUPABASE_URL=https://wwzabsfwfojsizexptxe.supabase.co
-#   SUPABASE_SERVICE_ROLE_KEY=eyJ...
-#   CRM_SESSION_SECRET=anyrandom32chars
+# One-time (in Supabase SQL Editor):
+# Run crm/supabase/crm_migration.sql  (creates crm_users + seeds admin)
 
-pnpm dev
-# CRM runs at http://localhost:3001 (note port 3001 — avoids clash with consumer app)
+pnpm dev  # → http://localhost:3001
 
-# Default login: fitterverse.in@gmail.com / Fitterverse@123
+# Login: fitterverse.in@gmail.com / Fitterverse@123
 ```
 
 ### Running Both Simultaneously
 
-Open two terminal windows. Run `pnpm dev` in `product/` and `pnpm dev` in `crm/`. They run on ports 3000 and 3001 respectively and both connect to the same Supabase database.
+Open two terminals. Run `pnpm dev` in `product/` (port 3000) and `pnpm dev` in `crm/` (port 3001). Both connect to the same Supabase database.
+
+To test the plan flow end-to-end:
+1. CRM (port 3001): create a meal plan or workout plan for a user → publish it
+2. Consumer app (port 3000): log in as that user → open /diet or /workout → see the plan at top
 
 ---
 
@@ -1663,61 +1529,75 @@ Open two terminal windows. Run `pnpm dev` in `product/` and `pnpm dev` in `crm/`
 
 ### Why Firebase Auth for consumers but custom auth for CRM?
 
-Consumer users sign up themselves — they need Google sign-in (reduces friction), password resets via email, and a battle-tested identity system. Firebase handles all of this.
+Consumer users sign up themselves — they need Google sign-in, password resets, battle-tested identity. Firebase handles all of this.
 
-CRM users are created manually by the admin — there are maybe 5–10 team members. A simple username/password in a database table is all that's needed. Using Firebase for CRM would mean mixing consumer and internal users in the same auth system — messy and unnecessary.
-
-Keeping them separate means a compromised CRM password cannot be used to access consumer data through Firebase, and vice versa.
+CRM users are created manually by the admin — maybe 5–10 people. A username/password in a database table is all that's needed. Keeps the two identity systems completely separate: a compromised CRM password cannot be used to access consumer data through Firebase, and vice versa.
 
 ---
 
-### Why two separate Next.js apps instead of one?
+### Why two separate Next.js apps?
 
-Complete isolation. The CRM has different styling, different dependencies, different build configuration, different secrets. If the consumer app has a bug that causes a deploy failure, the CRM still works and vice versa. Different teams can work on each independently.
-
-Also practical: consumer app is mobile-first (max-width 448px, bottom navigation). CRM is desktop-first (full-width table layouts, sidebar navigation). These are fundamentally different UI architectures.
+Complete isolation. Different styling, dependencies, build config, secrets. If the consumer app has a deploy failure, the CRM still works. Different screen design philosophies: consumer app is mobile-first (max-width 448px, bottom nav), CRM is desktop-first (full-width table layouts, sidebar nav).
 
 ---
 
 ### Why Supabase instead of a different database?
 
-PostgreSQL is the gold standard for relational data. Supabase adds:
-- A web dashboard to view/edit data directly
-- Auto-generated REST API (useful for quick data exploration)
-- Easy JavaScript integration
-- Free tier that's generous for early-stage
-
-We use the **service role key** (bypasses Row Level Security) for all server-side operations — safe because the key never reaches the browser and all access is controlled by the server code.
+PostgreSQL is the gold standard for relational data. Supabase adds a web dashboard, easy JavaScript integration, and a generous free tier. We use the service role key on the server — safe because the key never reaches the browser.
 
 ---
 
 ### Why store `points` in `meal_logs` instead of computing at query time?
 
-If we stored only `rating` and computed points dynamically (`SELECT CASE WHEN rating='healthy' THEN 3 ...`), every aggregation query would be slower. Storing `points: 3` directly means `SUM(points)` is a simple arithmetic operation on integers — instant even with millions of rows.
-
-The tradeoff: if we ever change the points system (e.g., healthy becomes 4 pts), we'd need to backfill historical data. This is acceptable — the points system was designed upfront and is unlikely to change.
+Storing `points: 3` directly means `SUM(points)` is a simple arithmetic operation — instant even with millions of rows. Computing from a rating string dynamically would be slower. Tradeoff: if points values ever change, historical data needs backfilling.
 
 ---
 
 ### Why a grace period for streaks?
 
-Real life happens — travel, a wedding, illness, a bad day. Breaking a streak on the first bad day would be demoralising and defeat the purpose of building a habit. Research into habit formation shows that occasional missed days don't break habits — what breaks habits is giving up entirely.
-
-The 3-day grace (break only after 3 consecutive bad days) means users stay engaged through slip-ups. This is core to the product philosophy: Fitterverse is about sustainable habits, not perfection.
+Real life happens. Breaking a streak on the first bad day is demoralising and counterproductive. Research in habit formation shows occasional missed days don't break habits — giving up entirely does. The 3-day grace (break only after 3 consecutive bad days) keeps users engaged through slip-ups.
 
 ---
 
 ### Why are meal dates stored as `YYYY-MM-DD` strings, not timestamps?
 
-Timestamps have timezone complexity — if a user logs dinner at 11pm IST, that's 5:30pm UTC. Comparing timestamps across timezones is error-prone. A date string `"2026-05-04"` is the user's local date as they experience it — no timezone math needed. All date comparisons use simple string equality: `.eq('date', '2026-05-04')`.
+Timestamps have timezone complexity — dinner at 11pm IST is 5:30pm UTC. A date string `"2026-05-08"` is the user's local date as they experience it — no timezone math. All date comparisons use simple string equality: `.eq('date', '2026-05-04')`.
 
 ---
 
-### Why server actions instead of API routes for data mutations?
+### Why is `meal_plan_items.food_name` denormalized?
 
-Server actions (functions marked `'use server'`) can be called directly from React components without writing an HTTP fetch call. They run on the server, have access to environment variables, and Next.js handles the serialisation automatically.
+The plan item stores a copy of the food name even though `food_item_id` references `food_items`. This means the plan survives if the food database entry is ever edited or corrected. A plan created in January still shows exactly what was prescribed then, not the current state of the food record.
 
-Traditional API routes (`route.ts`) are used only when you need a clean HTTP interface — specifically for the auth endpoints (login/logout) because those are called from client-side code using `fetch()`, not React component invocations.
+---
+
+### Why is `reps` a text field, not an integer?
+
+Workout programming uses ranges ("8-12"), max effort ("AMRAP"), time ("30s"), and percentage-based ("70% 1RM"). Constraining to a number would lose real coaching information.
+
+---
+
+### Why do plan macros get pre-computed at save time?
+
+`meal_plan_items.energy_kcal` = `food.energy_kcal × quantity_g / 100`, computed by the builder at save time. This means the plan view doesn't need to JOIN with `food_items` and re-multiply every render. It also protects against drift if food data is later corrected.
+
+---
+
+### Why can't past plan days be edited?
+
+A nutritionist might have given specific advice for Monday based on what happened that day (e.g., a client's meeting lunch). Allowing retroactive edits creates confusion about what the user was actually prescribed. Past days are frozen in the DB — the update action only touches `editableDays = days where !isPastDay`.
+
+---
+
+### Server component children passed to client `ExpandableSection`
+
+The "Full week plan" button in the Diet and Workout pages hides a `<MealPlanView>` (or `<WorkoutPlanView>`) rendered on the server. Instead of re-fetching the data when the user taps, the server-rendered output is passed as `children` to a client `<ExpandableSection>` toggle component. Next.js App Router fully supports passing server-component output as children to client components. This gives zero additional network requests on expansion.
+
+---
+
+### Food search is inline (not absolute-positioned dropdown)
+
+The meal plan builder uses `overflow-x-auto` on the grid table. Absolute-positioned dropdowns would be clipped by this container. Instead, food search results appear inline in the cell, causing the cell to grow vertically. This avoids the clipping issue entirely.
 
 ---
 
@@ -1725,73 +1605,68 @@ Traditional API routes (`route.ts`) are used only when you need a clean HTTP int
 
 ### DO NOT delete `pnpm-workspace.yaml` from `product/` or `crm/`
 
-**Why this matters:** During Cloud Build, Firebase runs `pnpm install` in the app's subdirectory. Without a `pnpm-workspace.yaml` in that directory, pnpm looks upward for a root workspace file. If it finds one at the repo root, it treats the entire repo as a monorepo and installs all dependencies from root — causing path confusion.
-
-**The root-level `pnpm-workspace.yaml` was intentionally deleted** on May 4, 2026. Each sub-app has its own `pnpm-workspace.yaml` which correctly scopes pnpm to that directory.
-
-If you ever see a build error like `"Found lockfile missing swc dependencies"` or `"Module not found in /workspace/node_modules"`, this is the first thing to check.
+Without it, pnpm traverses up looking for a root workspace file. This was fixed on May 4, 2026 (root-level `pnpm-workspace.yaml` intentionally deleted). Each sub-app has its own. Build error symptom: `"Found lockfile missing swc dependencies"`.
 
 ---
 
 ### `crm/next.config.ts` MUST have `turbopack.root` and `outputFileTracingRoot`
 
-```ts
-turbopack: { root: path.resolve(__dirname) },
-outputFileTracingRoot: path.resolve(__dirname),
-```
-
-**Why:** Without these, Turbopack traverses from the Firebase Cloud Build's container root (`/workspace/`) rather than the CRM directory. Historically, this caused the CRM build to wander into the former root-level consumer app and pick up the wrong `proxy.ts` / dependency graph. The duplicate root consumer app has since been removed, but these anchors are still important and should not be deleted.
-
-This happened in production and took significant debugging to diagnose. Do not remove these lines.
+Without these, Turbopack may traverse from the Firebase Cloud Build container root (`/workspace/`) and pick up wrong files. Real production failure in early history. Do not remove.
 
 ---
 
 ### `NEXT_PUBLIC_*` variables MUST have `availability: [BUILD, RUNTIME]`
 
-Any variable used in client-side (browser) code is **embedded into the JavaScript bundle at build time**. If the variable is only available at runtime, it will be `undefined` in the bundle. You'll see bugs where Firebase fails to initialise or Supabase returns "Invalid URL".
-
-Rule: if the variable name starts with `NEXT_PUBLIC_`, always put `[BUILD, RUNTIME]` in `apphosting.yaml`.
+Any `NEXT_PUBLIC_*` variable is embedded into the browser bundle at BUILD time. If only available at RUNTIME, it will be `undefined` in production. This caused a real deployment failure once. The rule: if it starts with `NEXT_PUBLIC_`, it needs both.
 
 ---
 
 ### `SUPABASE_SERVICE_ROLE_KEY` must never reach the browser
 
-This key has full read/write access to every table, bypassing all security rules. If it ever ends up in client-side code (imported in a component without `'use server'`), anyone could extract it from the browser's network tab and have full database access.
-
-Always import `createClient()` from `@/lib/supabase/server` (server-side), never from `@/lib/supabase/client` (browser-side), when using the service role key.
+Full read/write access bypassing all RLS. Always import `createClient()` from server-only files. Never import in `'use client'` components. If it ever ends up in the browser, anyone can extract it from the network tab.
 
 ---
 
-### Firebase UIDs are text strings, not UUIDs
+### Firebase UIDs vs UUIDs
 
-Consumer users are identified by Firebase UIDs — strings like `"Ua3mK9j2pNxY..."` (28 characters, alphanumeric). These are the primary key of `profiles` and `user_id` in every other consumer table.
+Consumer users: Firebase UIDs (28-char alphanumeric strings, e.g. `"Ua3mK9j2pNxY..."`). These are `text` columns.
 
-Supabase's auto-generated IDs are UUIDs (formatted like `"550e8400-e29b-41d4-a716-446655440000"`). CRM user `id` columns use UUID. Don't mix them up.
+CRM users and plan records: PostgreSQL UUIDs (format `"550e8400-e29b-41d4-a716-446655440000"`).
+
+Don't mix them up in queries.
 
 ---
 
 ### CRM is `noindex, nofollow`
 
-The CRM's `layout.tsx` sets `robots: 'noindex, nofollow'` in the metadata. This tells search engines not to index the CRM. If this is ever removed, the CRM login page could appear in Google search results.
+The CRM layout sets this in metadata. If removed, the CRM login page could appear in Google search results.
 
 ---
 
 ### `proxy.ts` is active in Next.js 16
 
-In Next.js 16, `proxy.ts` is the valid file convention replacing the old `middleware.ts` naming. So `product/src/proxy.ts` **does execute** during requests where its matcher applies.
+In Next.js 16, `proxy.ts` replaces the old `middleware.ts` convention. `product/src/proxy.ts` **does execute** for matched requests. Route protection is layered: proxy.ts handles request-time redirects, and `app/(app)/layout.tsx` handles session + onboarding gating on the server.
 
-Route protection in the consumer app is therefore layered:
-- `proxy.ts` handles request-time redirects for public/private routes
-- the shared `app/(app)/layout.tsx` still checks session + onboarding on the server
+---
 
-That server-side layout check is still valuable as a second line of defense and as the place where onboarding gating happens.
+### Day of week: JS vs ISO
+
+JavaScript `Date.getDay()` returns 0=Sunday, 6=Saturday.
+The app uses **ISO week numbering**: 0=Monday, 6=Sunday.
+
+Conversion: `((date.getDay() + 6) % 7)` converts JS day to ISO day. This is used everywhere day-of-week is computed: plan display, today's workout/meal snippet, `isPastDay()`.
+
+---
+
+### IFCT 2017 uses raw ingredients, not prepared dishes
+
+Searching "roti" won't find anything. Search "wheat flour, atta" instead. IFCT documents the nutritional content of raw ingredients before cooking. Nutritionists should know the ingredient names, not dish names.
 
 ---
 
 ### Stable git snapshot: `fitterverse_v1_04-05-2026`
 
-Tag `fitterverse_v1_04-05-2026` is a verified restore point committed May 4, 2026. Both apps (consumer + CRM) are fully working at this tag. If a future change breaks things badly, you can roll back:
-
+Tag `fitterverse_v1_04-05-2026` is a verified restore point from May 4, 2026 (consumer + CRM v1). Rollback:
 ```bash
 git checkout fitterverse_v1_04-05-2026
 ```
@@ -1802,9 +1677,9 @@ git checkout fitterverse_v1_04-05-2026
 
 ### Branch Structure
 
-Currently using a single branch: `main`. Everything is committed directly to `main`.
+Single branch: `main`. All changes committed directly to `main`.
 
-**Auto-deploy trigger:** Both Firebase backends watch the `main` branch. Any push to `main` triggers a build for both apps simultaneously.
+**Auto-deploy trigger:** Both Firebase backends watch `main`. Any push triggers builds for both apps simultaneously.
 
 ---
 
@@ -1813,29 +1688,30 @@ Currently using a single branch: `main`. Everything is committed directly to `ma
 ```bash
 # 1. Make changes locally (test with pnpm dev first)
 
-# 2. Check what's changed
+# 2. Check what changed
 git status
 git diff
 
-# 3. Stage the changed files
-git add <specific-files>   # Prefer specific files over git add .
+# 3. Stage specific files (prefer specific over git add .)
+git add <specific-files>
 
 # 4. Commit with a clear message
-git commit -m "Fix: description of what changed and why"
+git commit -m "Brief description of what changed and why"
 
-# 5. Push to main — this triggers auto-deploy
+# 5. Push — auto-triggers Firebase builds (~5–10 min)
 git push origin main
 
-# 6. Watch the build at:
-# Firebase Console → App Hosting → fitterverse-app (or fitterverse-crm)
-# Build takes ~3-5 minutes
+# 6. Track build progress:
+# https://console.firebase.google.com/project/fitterverse/apphosting
+
+# 7. (Optional) Force manual rollout if auto-deploy doesn't trigger:
+firebase apphosting:rollouts:create fitterverse-app --git-branch main --project fitterverse --force
+firebase apphosting:rollouts:create fitterverse-crm --git-branch main --project fitterverse --force
 ```
 
 ---
 
-### How to Create a Stable Snapshot (git tag)
-
-Done after any major milestone. Use this to create safe restore points:
+### How to Create a Stable Snapshot
 
 ```bash
 git tag fitterverse_v2_DD-MM-YYYY
@@ -1846,21 +1722,29 @@ git push origin fitterverse_v2_DD-MM-YYYY
 
 ### Adding a New Team Member to the CRM
 
-1. Log in to `crm.fitterverse.in` as admin (fitterverse.in@gmail.com / Fitterverse@123)
-2. Go to Team → "Add team member"
-3. Fill in: Full name, email, role, temporary password (min 8 chars)
-4. Share the temporary password with the team member directly (WhatsApp/email)
+1. Log in to `crm.fitterverse.in` as admin
+2. Team → "Add team member" → fill in name, email, role, password
+3. Share password with them directly
 
-No code change needed. The team member can log in immediately.
+No code change needed.
 
 ---
 
 ### Deactivating a CRM Team Member
 
-1. Log in as admin
-2. Go to Team → find the team member → click "Deactivate"
-3. Their account is immediately blocked. They cannot log in.
-4. Their account is not deleted — it can be reactivated at any time.
+1. Log in as admin → Team → find member → "Deactivate"
+2. Account blocked immediately, not deleted, can be reactivated.
+
+---
+
+### Running the Database Migrations
+
+All SQL migrations are in `product/supabase/migrations/`. Run them in order in the Supabase SQL Editor (project dashboard → SQL Editor):
+
+1. `product/supabase/schema.sql` — original 5 consumer tables
+2. `product/supabase/migrations/002_add_food_items.sql` — food_items table + GIN index
+3. `product/supabase/migrations/003_add_plan_tables.sql` — all 5 plan tables
+4. `crm/supabase/crm_migration.sql` — crm_users table + admin seed
 
 ---
 
@@ -1868,146 +1752,112 @@ No code change needed. The team member can log in immediately.
 
 ### Consumer App (`product/package.json`)
 
-| Package | Version | What it does |
-|---|---|---|
-| `next` | 16.x | The main framework |
-| `react` + `react-dom` | 19.x | React — the UI library |
-| `typescript` | 5.x | Type checking |
-| `tailwindcss` | 4.x | CSS utility classes |
-| `@tailwindcss/postcss` | 4.x | Makes Tailwind work with PostCSS build pipeline |
-| `firebase` | 12.x | Firebase Auth SDK (email + Google sign-in) |
-| `@supabase/supabase-js` | 2.x | Supabase database client |
-| `@supabase/ssr` | 0.x | Supabase helpers for server-side rendering |
-| `jose` | 6.x | JWT creation and verification (session cookies) |
-| `sonner` | 2.x | Toast notification UI |
-| `framer-motion` | 12.x | Animation library (onboarding step transitions) |
-| `recharts` | 3.x | Chart library (progress page bar charts) |
-| `date-fns` | 4.x | Date formatting and manipulation |
-| `lucide-react` | 1.x | SVG icon library |
-| `shadcn` | 4.x | CLI for adding/updating shadcn/ui components |
-| `class-variance-authority` | 0.x | `cva()` — builds conditional className strings (used by shadcn) |
-| `clsx` | 2.x | Merges className strings (used by shadcn + `cn()` util) |
-| `tailwind-merge` | 3.x | Merges Tailwind classes without conflicts |
-| `tw-animate-css` | 1.x | Pre-built CSS animation classes via Tailwind |
-| `next-themes` | 0.x | Theme management (installed but dark theme is hardcoded via CSS) |
-| `@base-ui/react` | 1.x | Headless UI primitives (installed as shadcn dependency) |
-| `react-hook-form` | 7.x | Form state management and validation (available but most forms use plain useState) |
-| `@hookform/resolvers` | 5.x | Connects react-hook-form with schema validators |
-| `zod` | 4.x | Schema-based runtime type validation |
+| Package | What it does |
+|---|---|
+| `next` 16.x | The main framework |
+| `react` + `react-dom` 19.x | UI library |
+| `typescript` 5.x | Type checking |
+| `tailwindcss` 4.x | CSS utility classes |
+| `@tailwindcss/postcss` 4.x | Tailwind + PostCSS pipeline |
+| `firebase` 12.x | Firebase Auth SDK (email + Google sign-in) |
+| `@supabase/supabase-js` 2.x | Supabase database client |
+| `@supabase/ssr` 0.x | Supabase helpers for SSR |
+| `jose` 6.x | JWT creation and verification (session cookies) |
+| `sonner` 2.x | Toast notification UI |
+| `framer-motion` 12.x | Animation library (onboarding transitions) |
+| `recharts` 3.x | Chart library (progress page) |
+| `date-fns` 4.x | Date formatting, comparison, week detection |
+| `lucide-react` 1.x | SVG icon library |
+| `shadcn` 4.x | CLI for adding shadcn/ui components |
+| `class-variance-authority` 0.x | `cva()` — conditional className strings |
+| `clsx` 2.x | Merges className strings |
+| `tailwind-merge` 3.x | Merges Tailwind classes without conflicts |
+| `tw-animate-css` 1.x | Pre-built CSS animation classes |
+| `next-themes` 0.x | Theme management (installed; dark hardcoded via CSS) |
+| `react-hook-form` 7.x | Form state management |
+| `@hookform/resolvers` 5.x | Connects react-hook-form with validators |
+| `zod` 4.x | Schema-based runtime type validation |
 
 ---
 
 ### CRM App (`crm/package.json`)
 
-| Package | Version | What it does |
-|---|---|---|
-| `next` | 16.x | The main framework |
-| `react` + `react-dom` | 19.x | React |
-| `typescript` | 5.x | Type checking |
-| `tailwindcss` | 4.x | CSS utility classes |
-| `@tailwindcss/postcss` | 4.x | Tailwind + PostCSS |
-| `@supabase/supabase-js` | 2.x | Supabase database client |
-| `jose` | 6.x | JWT for session cookies |
-| `sonner` | 2.x | Toast notifications |
-| `date-fns` | 4.x | Date formatting |
-| `lucide-react` | 1.x | Icons |
-| `clsx` | 2.x | Class merging |
-| `tailwind-merge` | 3.x | Tailwind class conflict resolution |
+| Package | What it does |
+|---|---|
+| `next` 16.x | Framework |
+| `react` + `react-dom` 19.x | React |
+| `typescript` 5.x | Type checking |
+| `tailwindcss` 4.x | CSS utilities |
+| `@tailwindcss/postcss` 4.x | Tailwind + PostCSS |
+| `@supabase/supabase-js` 2.x | Supabase client |
+| `jose` 6.x | JWT for session cookies |
+| `sonner` 2.x | Toast notifications |
+| `date-fns` 4.x | Date formatting + past-day detection |
+| `lucide-react` 1.x | Icons (Plus, X, Loader2, Moon, ChevronLeft/Right, etc.) |
+| `clsx` 2.x | Class merging |
+| `tailwind-merge` 3.x | Tailwind class conflicts |
 
-The CRM has a significantly smaller dependency footprint — no Firebase, no Framer Motion, no Recharts, no shadcn/ui. This keeps the CRM bundle small and the build fast.
+The CRM has a smaller footprint — no Firebase, no Framer Motion, no Recharts, no shadcn/ui. Keeps the CRM bundle small and builds fast.
 
 ---
 
 ## 17. Complete SQL Schemas
 
-### Consumer App Schema (`product/supabase/schema.sql`)
-
-Run this once in the Supabase SQL Editor to create all 5 consumer tables.
+### Original Consumer Tables (`product/supabase/schema.sql`)
 
 ```sql
--- ============================================================
--- Fitterverse Diet Tracker — Supabase Schema
--- Auth: Firebase (user_id = Firebase UID, stored as text)
--- All DB ops use service role key (server-side only)
--- ============================================================
-
 create table if not exists public.profiles (
-  id text primary key,               -- Firebase UID
-  email text,
-  full_name text,
-  age integer,
-  weight_kg decimal(5,2),
-  height_cm decimal(5,1),
-  goal_weight_kg decimal(5,2),
-  activity_level text check (activity_level in ('sedentary', 'light', 'moderate', 'active')),
-  practices_fasting boolean default false,
-  meals_per_day integer default 3,
-  breakfast_time text,
-  lunch_time text,
-  dinner_time text,
+  id text primary key,
+  email text, full_name text, age integer,
+  weight_kg decimal(5,2), height_cm decimal(5,1), goal_weight_kg decimal(5,2),
+  activity_level text check (activity_level in ('sedentary','light','moderate','active')),
+  practices_fasting boolean default false, meals_per_day integer default 3,
+  breakfast_time text, lunch_time text, dinner_time text,
   calorie_limit_per_meal integer default 650,
-  dietary_restrictions text,
-  diet_goal text,
-  biggest_challenge text,
-  motivation text,
+  dietary_restrictions text, diet_goal text, biggest_challenge text, motivation text,
   onboarding_completed boolean default false,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  created_at timestamptz default now(), updated_at timestamptz default now()
 );
 
 create table if not exists public.meal_logs (
   id uuid primary key default gen_random_uuid(),
-  user_id text not null,             -- Firebase UID
-  date date not null,
-  meal_type text not null check (meal_type in ('breakfast', 'lunch', 'dinner')),
-  rating text check (rating in ('healthy', 'medium', 'junk', 'skipped')),
-  calories integer,
-  note text,
-  points integer,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
+  user_id text not null, date date not null,
+  meal_type text not null check (meal_type in ('breakfast','lunch','dinner')),
+  rating text check (rating in ('healthy','medium','junk','skipped')),
+  calories integer, note text, points integer,
+  created_at timestamptz default now(), updated_at timestamptz default now(),
   unique(user_id, date, meal_type)
 );
 
 create table if not exists public.daily_scores (
   id uuid primary key default gen_random_uuid(),
-  user_id text not null,
-  date date not null,
-  total_points integer default 0,
-  meals_logged integer default 0,
+  user_id text not null, date date not null,
+  total_points integer default 0, meals_logged integer default 0,
   is_streak_day boolean default false,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
+  created_at timestamptz default now(), updated_at timestamptz default now(),
   unique(user_id, date)
 );
 
 create table if not exists public.user_streaks (
-  user_id text primary key,          -- Firebase UID
-  current_streak integer default 0,
-  longest_streak integer default 0,
-  consecutive_bad_days integer default 0,
-  last_updated date,
-  streak_start_date date,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  user_id text primary key,
+  current_streak integer default 0, longest_streak integer default 0,
+  consecutive_bad_days integer default 0, last_updated date, streak_start_date date,
+  created_at timestamptz default now(), updated_at timestamptz default now()
 );
 
 create table if not exists public.user_badges (
   id uuid primary key default gen_random_uuid(),
-  user_id text not null,             -- Firebase UID
-  badge_slug text not null,
+  user_id text not null, badge_slug text not null,
   earned_at timestamptz default now(),
   unique(user_id, badge_slug)
 );
 
--- Enable Row Level Security (service role bypasses this, but it's good practice)
 alter table public.profiles enable row level security;
 alter table public.meal_logs enable row level security;
 alter table public.daily_scores enable row level security;
 alter table public.user_streaks enable row level security;
 alter table public.user_badges enable row level security;
 
--- Performance indexes
 create index if not exists meal_logs_user_date on public.meal_logs(user_id, date);
 create index if not exists daily_scores_user_date on public.daily_scores(user_id, date);
 create index if not exists user_badges_user on public.user_badges(user_id);
@@ -2015,42 +1865,138 @@ create index if not exists user_badges_user on public.user_badges(user_id);
 
 ---
 
-### CRM Schema (`crm/supabase/crm_migration.sql`)
-
-Run this once in the Supabase SQL Editor to create the CRM users table and seed the admin account.
+### Food Items Table (`product/supabase/migrations/002_add_food_items.sql`)
 
 ```sql
--- ============================================================
--- Fitterverse CRM — Supabase Migration
--- ============================================================
-
-create table if not exists public.crm_users (
-  id            uuid primary key default gen_random_uuid(),
-  email         text unique not null,
-  password_hash text not null,
-  full_name     text not null,
-  role          text not null default 'nutritionist'
-                  check (role in ('admin', 'master_coach', 'nutritionist', 'trainer', 'sales')),
-  is_active     boolean default true,
-  created_at    timestamptz default now(),
-  updated_at    timestamptz default now()
+create table if not exists public.food_items (
+  id            serial primary key,
+  code          text not null unique,
+  name          text not null,
+  scientific    text, lang_names text, food_group text,
+  energy_kcal   numeric(8,2), water_g numeric(8,2),
+  protein_g     numeric(8,2), fat_g numeric(8,2),
+  carbs_g       numeric(8,2), fiber_g numeric(8,2),
+  sugar_g       numeric(8,2), sat_fat_g numeric(8,2),
+  cholesterol_mg numeric(8,2),
+  vit_c_mg      numeric(8,3), vit_a_mcg numeric(8,3),
+  thiamine_mg   numeric(8,4), riboflavin_mg numeric(8,4),
+  niacin_mg     numeric(8,3), vit_b6_mg numeric(8,4),
+  folate_mcg    numeric(8,2), beta_carotene_mcg numeric(8,2),
+  calcium_mg    numeric(8,2), iron_mg numeric(8,3),
+  magnesium_mg  numeric(8,2), phosphorus_mg numeric(8,2),
+  potassium_mg  numeric(8,2), sodium_mg numeric(8,2),
+  zinc_mg       numeric(8,3)
 );
 
--- Index for fast login lookup
-create index if not exists crm_users_email_idx on public.crm_users (email);
+create index if not exists food_items_name_fts on public.food_items
+  using gin(to_tsvector('english', name));
 
--- Seed: fitterverse.in@gmail.com / Fitterverse@123
--- Password hash generated with Node.js scrypt (format: salt:hash)
-insert into public.crm_users (email, password_hash, full_name, role)
-values (
-  'fitterverse.in@gmail.com',
-  'd6da09f50159c38b9f01685a3aedd12b:8b064478baed60c50e777e4ade3b9a6679dc93df040f3d24879b4433f0a6e403f41d7616393fd74803561dcabb3eeb3ff1f12dc69e6ec73f7c45c438f216236e',
-  'Fitterverse Admin',
-  'admin'
-)
-on conflict (email) do nothing;
+alter table public.food_items enable row level security;
+create policy "Public read" on public.food_items for select using (true);
+```
+
+*Seeded with 542 IFCT 2017 foods via `product/scripts/seed-food-items.ts`. The seed script reads `ifct2017.json` (pre-processed from the IFCT CSV using Python) and upserts in batches of 50.*
+
+---
+
+### Plan Tables (`product/supabase/migrations/003_add_plan_tables.sql`)
+
+```sql
+create table if not exists public.meal_plans (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null, created_by text not null,
+  title text not null default 'Meal Plan',
+  week_start date not null,
+  status text not null default 'draft'
+    check (status in ('draft','published','archived')),
+  notes text,
+  created_at timestamptz default now(), updated_at timestamptz default now()
+);
+create index if not exists meal_plans_user_id on public.meal_plans(user_id);
+create index if not exists meal_plans_status on public.meal_plans(status);
+alter table public.meal_plans enable row level security;
+
+create table if not exists public.meal_plan_items (
+  id uuid primary key default gen_random_uuid(),
+  meal_plan_id uuid not null references public.meal_plans(id) on delete cascade,
+  day_of_week integer not null check (day_of_week between 0 and 6),
+  meal_slot text not null check (meal_slot in (
+    'breakfast','morning_snack','lunch','afternoon_snack','dinner','evening_snack'
+  )),
+  food_item_id integer references public.food_items(id),
+  food_name text not null,
+  quantity_g numeric(8,1) not null check (quantity_g > 0),
+  energy_kcal numeric(8,2), protein_g numeric(8,2),
+  fat_g numeric(8,2), carbs_g numeric(8,2), fiber_g numeric(8,2),
+  display_order integer not null default 0, notes text,
+  created_at timestamptz default now()
+);
+create index if not exists meal_plan_items_plan on public.meal_plan_items(meal_plan_id);
+alter table public.meal_plan_items enable row level security;
+
+create table if not exists public.workout_plans (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null, created_by text not null,
+  title text not null default 'Workout Plan',
+  week_start date not null,
+  status text not null default 'draft'
+    check (status in ('draft','published','archived')),
+  notes text,
+  created_at timestamptz default now(), updated_at timestamptz default now()
+);
+create index if not exists workout_plans_user_id on public.workout_plans(user_id);
+create index if not exists workout_plans_status on public.workout_plans(status);
+alter table public.workout_plans enable row level security;
+
+create table if not exists public.workout_plan_days (
+  id uuid primary key default gen_random_uuid(),
+  workout_plan_id uuid not null references public.workout_plans(id) on delete cascade,
+  day_of_week integer not null check (day_of_week between 0 and 6),
+  label text, is_rest_day boolean not null default false,
+  display_order integer not null default 0,
+  created_at timestamptz default now(),
+  unique(workout_plan_id, day_of_week)
+);
+create index if not exists workout_plan_days_plan on public.workout_plan_days(workout_plan_id);
+alter table public.workout_plan_days enable row level security;
+
+create table if not exists public.workout_plan_exercises (
+  id uuid primary key default gen_random_uuid(),
+  workout_plan_day_id uuid not null references public.workout_plan_days(id) on delete cascade,
+  exercise_name text not null,
+  sets integer, reps text,
+  duration_minutes integer, rest_seconds integer,
+  notes text, display_order integer not null default 0,
+  created_at timestamptz default now()
+);
+create index if not exists workout_plan_exercises_day on public.workout_plan_exercises(workout_plan_day_id);
+alter table public.workout_plan_exercises enable row level security;
 ```
 
 ---
 
-*Last updated: May 4, 2026 — Consumer app + CRM v1 live. Custom domains configured (fitterverse.in + crm.fitterverse.in). Git tag: `fitterverse_v1_04-05-2026`.*
+### CRM Schema (`crm/supabase/crm_migration.sql`)
+
+```sql
+create table if not exists public.crm_users (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null, password_hash text not null,
+  full_name text not null,
+  role text not null default 'nutritionist'
+    check (role in ('admin','master_coach','nutritionist','trainer','sales')),
+  is_active boolean default true,
+  created_at timestamptz default now(), updated_at timestamptz default now()
+);
+create index if not exists crm_users_email_idx on public.crm_users(email);
+
+-- Seed admin account (fitterverse.in@gmail.com / Fitterverse@123)
+insert into public.crm_users (email, password_hash, full_name, role) values (
+  'fitterverse.in@gmail.com',
+  'd6da09f50159c38b9f01685a3aedd12b:8b064478baed60c50e777e4ade3b9a6679dc93df040f3d24879b4433f0a6e403f41d7616393fd74803561dcabb3eeb3ff1f12dc69e6ec73f7c45c438f216236e',
+  'Fitterverse Admin', 'admin'
+) on conflict (email) do nothing;
+```
+
+---
+
+*Last updated: May 8, 2026 — v2 live with workout tracking, IFCT food DB (542 foods), meal plan builder, workout plan builder, plan edit mode with past-day locking, consumer diet/workout pages redesigned (plan-first UX). Both apps deployed on Firebase App Hosting.*
