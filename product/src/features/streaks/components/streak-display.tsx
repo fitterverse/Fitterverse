@@ -27,7 +27,7 @@ export function StreakDisplay({ streak }: StreakDisplayProps) {
         </motion.div>
         <div>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-foreground">{current_streak}</span>
+            <span className="fv-data text-2xl font-bold text-foreground">{current_streak}</span>
             <span className="text-sm text-muted-foreground">day streak</span>
           </div>
           <p className="text-xs text-muted-foreground">{message}</p>
@@ -35,7 +35,7 @@ export function StreakDisplay({ streak }: StreakDisplayProps) {
       </div>
       <div className="text-right">
         <div className="text-xs text-muted-foreground">Best</div>
-        <div className="text-lg font-bold text-foreground">{longest_streak}</div>
+        <div className="fv-data text-lg font-bold text-foreground">{longest_streak}</div>
       </div>
     </div>
   )
@@ -45,19 +45,18 @@ export function StreakGraceDots({ streak }: StreakDisplayProps) {
   if (!streak || streak.consecutive_bad_days === 0) return null
 
   return (
-    <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-      <span className="text-amber-400 text-sm">⚡</span>
+    <div className="flex items-center gap-2 py-2 px-3 rounded-lg" style={{ background: 'oklch(0.78 0.13 75 / 0.10)', border: '1px solid oklch(0.78 0.13 75 / 0.22)' }}>
+      <span className="text-sm" style={{ color: '#E8A95B' }}>⚡</span>
       <div className="flex gap-1">
         {Array.from({ length: STREAK_BREAK_DAYS }).map((_, i) => (
           <div
             key={i}
-            className={`w-2.5 h-2.5 rounded-full ${
-              i < streak.consecutive_bad_days ? 'bg-red-400' : 'bg-secondary'
-            }`}
+            className="w-2.5 h-2.5 rounded-full"
+            style={{ background: i < streak.consecutive_bad_days ? '#E8A95B' : 'var(--fv-slate, #2C322F)' }}
           />
         ))}
       </div>
-      <span className="text-xs text-amber-400">
+      <span className="fv-data text-xs" style={{ color: '#E8A95B' }}>
         {STREAK_BREAK_DAYS - streak.consecutive_bad_days} day{STREAK_BREAK_DAYS - streak.consecutive_bad_days !== 1 ? 's' : ''} grace left
       </span>
     </div>

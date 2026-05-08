@@ -16,9 +16,10 @@ export function ScoreRing({ score, maxScore = 9, size = 120, strokeWidth = 10 }:
   const offset = circumference * (1 - progress)
 
   const color =
-    score >= 7 ? '#22c55e' :
-    score >= 5 ? '#f59e0b' :
-    score > 0 ? '#ef4444' : '#374151'
+    score >= 7 ? '#3FD17A' :   /* Vital Green — great day */
+    score >= 5 ? '#E8A95B' :   /* Saffron — decent, keep going */
+    score > 0  ? '#D8462E' :   /* Crimson — at risk */
+                 '#2C322F'     /* Slate — nothing logged yet */
 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
@@ -49,8 +50,8 @@ export function ScoreRing({ score, maxScore = 9, size = 120, strokeWidth = 10 }:
         />
       </svg>
       <div className="absolute text-center">
-        <div className="text-2xl font-bold leading-none" style={{ color }}>{score}</div>
-        <div className="text-xs text-muted-foreground">/ {maxScore}</div>
+        <div className="fv-data text-2xl font-bold leading-none" style={{ color }}>{score}</div>
+        <div className="fv-data text-xs text-muted-foreground">/ {maxScore}</div>
       </div>
     </div>
   )

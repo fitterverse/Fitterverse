@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Flame } from 'lucide-react'
+import Image from 'next/image'
 import { siteConfig } from '@/features/website/lib/site'
 
 const primaryLinkClassName =
@@ -14,17 +14,21 @@ const navLinks = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/8 bg-black/95 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-white/8 backdrop-blur-xl" style={{ background: 'oklch(0.10 0.005 150 / 0.95)' }}>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
         <Link href="/" className="inline-flex min-w-0 items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/15 text-primary sm:h-10 sm:w-10">
-            <Flame className="h-4 w-4 sm:h-5 sm:w-5" />
-          </span>
+          <Image
+            src="/logo-mark.svg"
+            alt="Fitterverse"
+            width={36}
+            height={36}
+            className="shrink-0 rounded-xl sm:w-10 sm:h-10"
+          />
           <span className="min-w-0">
-            <span className="block truncate text-xs font-semibold tracking-[0.16em] text-primary/85 sm:text-sm sm:tracking-[0.18em]">
+            <span className="block truncate font-heading text-sm font-semibold tracking-tight text-foreground sm:text-base">
               {siteConfig.shortName}
             </span>
-            <span className="hidden text-xs text-foreground/55 sm:block">
+            <span className="hidden text-xs text-muted-foreground sm:block">
               Accountability partner · not a tracker
             </span>
           </span>

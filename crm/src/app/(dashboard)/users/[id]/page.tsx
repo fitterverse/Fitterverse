@@ -73,11 +73,11 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               <Flame size={16} className="text-orange-400" />
               <h3 className="font-semibold text-gray-800 text-sm">Streak</h3>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{streak?.current_streak ?? 0}</p>
+            <p className="fv-data text-3xl font-bold text-gray-900">{streak?.current_streak ?? 0}</p>
             <p className="text-xs text-gray-400 mt-1">current days</p>
             <div className="mt-3 pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-500">
-                Best: <span className="font-medium text-gray-800">{streak?.longest_streak ?? 0} days</span>
+                Best: <span className="fv-data font-medium text-gray-800">{streak?.longest_streak ?? 0} days</span>
               </p>
             </div>
           </div>

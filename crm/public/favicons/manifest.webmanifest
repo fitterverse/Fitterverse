@@ -1,0 +1,18 @@
+{
+  "name": "Fitterverse",
+  "short_name": "Fitterverse",
+  "description": "The accountability partner for healthier eating and consistent workouts.",
+  "icons": [
+    { "src": "/favicons/favicon-16.svg", "sizes": "16x16", "type": "image/svg+xml" },
+    { "src": "/favicons/favicon-32.svg", "sizes": "32x32", "type": "image/svg+xml" },
+    { "src": "/favicons/favicon-48.svg", "sizes": "48x48", "type": "image/svg+xml" },
+    { "src": "/favicons/apple-touch-icon-180.svg", "sizes": "180x180", "type": "image/svg+xml" },
+    { "src": "/favicons/pwa-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicons/pwa-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicons/maskable-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "theme_color": "#0B0F0D",
+  "background_color": "#0B0F0D",
+  "display": "standalone",
+  "start_url": "/"
+}

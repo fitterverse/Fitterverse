@@ -1,17 +1,30 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 @theme inline {
-  --color-background: #f9fafb;
-  --color-foreground: #111827;
-  --color-sidebar-bg: #0f172a;
-  --color-sidebar-text: #94a3b8;
-  --color-sidebar-text-active: #f8fafc;
-  --color-sidebar-accent: #22c55e;
-  --color-primary: #22c55e;
-  --color-primary-dark: #16a34a;
-  --color-border: #e5e7eb;
-  --color-muted: #6b7280;
-  --color-card: #ffffff;
+  --color-background: var(--fv-bg);
+  --color-foreground: var(--fv-fg);
+  --color-primary: var(--fv-green);
+  --color-border: var(--fv-border);
+  --color-muted: var(--fv-muted);
+  --color-card: var(--fv-card);
+  --color-sidebar-bg: var(--fv-sidebar);
+}
+
+:root {
+  --fv-bg:        #f9fafb;
+  --fv-fg:        #111827;
+  --fv-card:      #ffffff;
+  --fv-border:    #e5e7eb;
+  --fv-muted:     #6b7280;
+  --fv-sidebar:   #1A1F1C;  /* brand Charcoal */
+  --fv-green:     #3FD17A;  /* Vital Green 500 */
+  --fv-green-dark:#2BAE61;  /* Vital Green 600 */
+  --fv-saffron:   #E8A95B;
+  --fv-crimson:   #D8462E;
+  --fv-font-display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+  --fv-font-text:    "Manrope", "Hanken Grotesk", system-ui, sans-serif;
+  --fv-font-data:    "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 }
 
 * {
@@ -19,8 +32,27 @@
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--fv-bg);
+  color: var(--fv-fg);
+  font-family: var(--fv-font-text);
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--fv-font-display);
+  letter-spacing: -0.02em;
+}
+
+.fv-data {
+  font-family: var(--fv-font-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.fv-label {
+  font-family: var(--fv-font-data);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
 }

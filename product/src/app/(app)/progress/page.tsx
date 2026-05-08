@@ -9,10 +9,9 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay 
 
 function getDotColor(score: DailyScore | undefined): string {
   if (!score || score.meals_logged === 0) return 'bg-secondary'
-  if (score.total_points >= 9) return 'bg-green-400'
-  if (score.is_streak_day) return 'bg-primary'
-  if (score.total_points >= 3) return 'bg-amber-500'
-  return 'bg-red-500'
+  if (score.total_points >= 9 || score.is_streak_day) return 'bg-primary'  /* Vital Green */
+  if (score.total_points >= 3) return 'bg-[#E8A95B]'   /* Saffron — decent */
+  return 'bg-[#D8462E]'                                /* Crimson — at risk */
 }
 
 export default async function ProgressPage() {

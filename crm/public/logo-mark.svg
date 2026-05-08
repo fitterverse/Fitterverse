@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Fitterverse mark">
+  <title>Fitterverse — primary mark</title>
+  <defs>
+    <clipPath id="fv-rounded">
+      <rect x="0" y="0" width="120" height="120" rx="28" ry="28"></rect>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#fv-rounded)">
+    <rect x="0" y="0" width="120" height="120" fill="#0B0F0D"></rect>
+    
+    <circle cx="60" cy="60" r="40" fill="none" stroke="#3FD17A" stroke-width="4" stroke-opacity="0.35"></circle>
+    
+    <circle cx="88.28" cy="31.72" r="6" fill="#3FD17A"></circle>
+    
+    <path d="M44 34 H80 V46 H56 V58 H74 V70 H56 V86 H44 Z" fill="#3FD17A"></path>
+  </g>
+</svg>

@@ -7,7 +7,7 @@ export default function WebsiteLayout({
   children: React.ReactNode
 }>) {
   return (
-    <div className="flex min-h-screen flex-1 flex-col overflow-hidden bg-black">
+    <div className="flex min-h-screen flex-1 flex-col overflow-hidden bg-background">
       <SiteHeader />
       <main className="flex-1">{children}</main>
       <SiteFooter />

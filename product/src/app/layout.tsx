@@ -1,7 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/features/website/lib/site";
+
+export const viewport: Viewport = {
+  themeColor: "#0B0F0D",
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -23,6 +29,14 @@ export const metadata: Metadata = {
     "workout habit tracker",
     "health accountability app India",
   ],
+  icons: {
+    icon: [
+      { url: "/favicons/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicons/favicon-32.svg", type: "image/svg+xml", sizes: "32x32" },
+    ],
+    apple: "/favicons/apple-touch-icon-180.svg",
+  },
+  manifest: "/favicons/manifest.webmanifest",
   openGraph: {
     type: "website",
     siteName: siteConfig.name,
