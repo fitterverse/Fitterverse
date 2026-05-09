@@ -20,11 +20,12 @@ export const metadata: Metadata = {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Nutrition: '#22c55e',
-  Workouts: '#3b82f6',
-  Habits: '#8b5cf6',
-  'Fitness & Health': '#f59e0b',
-  Mindset: '#ec4899',
+  Nutrition:        '#3FD17A',  /* Vital Green */
+  Workouts:         '#3FD17A',  /* Vital Green */
+  'Habit Building': '#E8A95B',  /* Saffron */
+  Habits:           '#E8A95B',  /* Saffron */
+  Mindset:          '#8E4D87',  /* Plum */
+  'Fitness & Health': '#E8A95B',
 }
 
 function getCategoryColor(category: string) {
@@ -55,7 +56,7 @@ export default async function BlogIndexPage() {
         {featured && (
           <Link
             href={`/blog/${featured.slug}`}
-            className="group mt-10 block rounded-[2rem] border border-white/8 bg-[linear-gradient(135deg,_rgba(34,197,94,0.08),_rgba(255,255,255,0.02)_50%)] p-6 transition hover:border-primary/25 sm:p-8"
+            className="group mt-10 block rounded-[2rem] border border-white/8 bg-[linear-gradient(135deg,_rgba(63,209,122,0.08),_rgba(255,255,255,0.02)_50%)] p-6 transition hover:border-primary/25 sm:p-8"
           >
             <div className="flex flex-wrap items-center gap-3">
               <span
