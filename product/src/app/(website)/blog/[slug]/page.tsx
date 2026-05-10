@@ -1,10 +1,9 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import { format, parseISO } from 'date-fns'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { BlogMarkdown } from '@/features/website/components/blog-markdown'
-import { JsonLd } from '@/features/website/components/json-ld'
+import { JsonLd, articleSchema, breadcrumbSchema, schemaGraph, blogPostMetadata } from '@/features/seo'
 import { getAllPostSlugs, getPostBySlug, getRelatedPosts } from '@/features/website/lib/blog'
 import { siteConfig } from '@/features/website/lib/site'
 
@@ -19,96 +18,37 @@ export async function generateStaticParams() {
   return slugs.map(slug => ({ slug }))
 }
 
-export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: BlogPostPageProps) {
   const { slug } = await params
   const post = await getPostBySlug(slug)
-
-  if (!post) {
-    notFound()
-  }
-
-  return {
-    title: post.title,
-    description: post.description,
-    alternates: {
-      canonical: `/blog/${post.slug}`,
-    },
-    openGraph: {
-      type: 'article',
-      title: post.title,
-      description: post.description,
-      url: `/blog/${post.slug}`,
-      publishedTime: post.date,
-      authors: [post.author],
-      tags: post.tags,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: post.title,
-      description: post.description,
-    },
-  }
+  if (!post) notFound()
+  return blogPostMetadata(post)
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params
   const post = await getPostBySlug(slug)
-
-  if (!post) {
-    notFound()
-  }
+  if (!post) notFound()
 
   const relatedPosts = await getRelatedPosts(post.slug)
-  const canonicalUrl = `${siteConfig.url}/blog/${post.slug}`
 
   return (
     <>
       <JsonLd
-        data={{
-          '@context': 'https://schema.org',
-          '@graph': [
-            {
-              '@type': 'Article',
-              headline: post.title,
-              description: post.description,
-              datePublished: post.date,
-              dateModified: post.date,
-              author: {
-                '@type': 'Organization',
-                name: post.author,
-              },
-              publisher: {
-                '@type': 'Organization',
-                name: siteConfig.name,
-                url: siteConfig.url,
-              },
-              mainEntityOfPage: canonicalUrl,
-            },
-            {
-              '@type': 'BreadcrumbList',
-              itemListElement: [
-                {
-                  '@type': 'ListItem',
-                  position: 1,
-                  name: 'Home',
-                  item: siteConfig.url,
-                },
-                {
-                  '@type': 'ListItem',
-                  position: 2,
-                  name: 'Blog',
-                  item: `${siteConfig.url}/blog`,
-                },
-                {
-                  '@type': 'ListItem',
-                  position: 3,
-                  name: post.title,
-                  item: canonicalUrl,
-                },
-              ],
-            },
-          ],
-        }}
+        data={schemaGraph(
+          articleSchema({
+            title: post.title,
+            description: post.description,
+            slug: post.slug,
+            datePublished: post.date,
+            tags: post.tags,
+          }),
+          breadcrumbSchema([
+            { name: 'Home', item: siteConfig.url },
+            { name: 'Blog', item: `${siteConfig.url}/blog` },
+            { name: post.title, item: `${siteConfig.url}/blog/${post.slug}` },
+          ]),
+        )}
       />
 
       <section className="px-4 pb-20 pt-12 sm:px-6 lg:px-8 lg:pb-24 lg:pt-16">
@@ -132,6 +72,17 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   {post.title}
                 </h1>
                 <p className="mt-5 text-lg leading-8 text-foreground/72">{post.description}</p>
+
+                {/* Author byline */}
+                <div className="mt-6 flex items-center gap-3 border-t border-white/8 pt-5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-xs font-bold text-primary">
+                    {post.author.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{post.author}</p>
+                    <p className="text-xs text-muted-foreground">Health &amp; Fitness Writing Team · {post.readingTime}</p>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-10 rounded-[2rem] border border-white/8 bg-white/[0.03] p-7 sm:p-8">

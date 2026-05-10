@@ -12,7 +12,7 @@ import {
   Target,
   Trophy,
 } from 'lucide-react'
-import { JsonLd } from '@/features/website/components/json-ld'
+import { JsonLd, organizationSchema, websiteSchema, faqSchema, schemaGraph } from '@/features/seo'
 import { siteConfig } from '@/features/website/lib/site'
 
 const faqItems = [
@@ -187,38 +187,14 @@ const secondaryLinkClassName =
   'inline-flex items-center justify-center rounded-full border border-white/12 bg-white/5 px-6 py-3 text-sm font-semibold text-foreground transition hover:border-white/18 hover:bg-white/10'
 
 export default async function WebsiteHomePage() {
-  const faqJsonLd = {
-    '@type': 'FAQPage',
-    mainEntity: faqItems.map(item => ({
-      '@type': 'Question',
-      name: item.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.answer,
-      },
-    })),
-  }
-
   return (
     <>
       <JsonLd
-        data={{
-          '@context': 'https://schema.org',
-          '@graph': [
-            {
-              '@type': 'Organization',
-              name: siteConfig.name,
-              url: siteConfig.url,
-              description: siteConfig.description,
-            },
-            {
-              '@type': 'WebSite',
-              name: siteConfig.name,
-              url: siteConfig.url,
-            },
-            faqJsonLd,
-          ],
-        }}
+        data={schemaGraph(
+          organizationSchema(),
+          websiteSchema(),
+          faqSchema([...faqItems]),
+        )}
       />
 
       {/* ── Hero ── */}
