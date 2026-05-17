@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/features/website/lib/site";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 export const viewport: Viewport = {
   themeColor: "#0B0F0D",
@@ -62,6 +63,7 @@ export default function RootLayout({
         {children}
         <Toaster richColors position="top-center" />
       </body>
+      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID!} />
     </html>
   );
 }
