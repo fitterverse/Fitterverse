@@ -1,32 +1,32 @@
 // Firebase Messaging Service Worker
-// Handles background push notifications when the app tab is not in focus.
-// This file must live at the root of the public directory so FCM can find it at /firebase-messaging-sw.js
+// Config is hardcoded (all NEXT_PUBLIC_ values) so Firebase initialises
+// immediately on install — no postMessage race condition.
 
 importScripts('https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js')
 importScripts('https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging-compat.js')
 
-// Config is injected at runtime via a message from the main thread.
-// We cache it on first receipt so subsequent background messages work.
-let firebaseConfig = null
-
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'FIREBASE_CONFIG') {
-    firebaseConfig = event.data.config
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig)
-    }
-  }
+firebase.initializeApp({
+  apiKey:            'AIzaSyA-rMRXQ_iSvOF8NS-PcItEGh-iQ8U-kCs',
+  authDomain:        'fitterverse.firebaseapp.com',
+  projectId:         'fitterverse',
+  storageBucket:     'fitterverse.firebasestorage.app',
+  messagingSenderId: '46698969942',
+  appId:             '1:46698969942:web:982e736a4e2223cb9734f7',
 })
 
-function getMessaging() {
-  if (!firebase.apps.length) return null
-  return firebase.messaging()
-}
+const messaging = firebase.messaging()
 
-// Background message handler — fires when the app is not focused
-self.addEventListener('push', () => {
-  // FCM's compat SDK handles this automatically once messaging is initialized.
-  // This listener ensures the SW stays active.
+// Background message handler — fires when the app tab is not focused
+messaging.onBackgroundMessage((payload) => {
+  const notification = payload.notification ?? {}
+  self.registration.showNotification(notification.title ?? 'Fitterverse', {
+    body:     notification.body  ?? '',
+    icon:     '/favicons/pwa-192.svg',
+    badge:    '/favicons/favicon-32.svg',
+    data:     payload.data ?? {},
+    tag:      payload.data?.type ?? 'fitterverse',
+    renotify: false,
+  })
 })
 
 // Handle notification click — open the app to the relevant page
@@ -45,27 +45,3 @@ self.addEventListener('notificationclick', (event) => {
     })
   )
 })
-
-// Lazily init and wire background handler after config arrives
-function tryInitMessaging() {
-  const messaging = getMessaging()
-  if (!messaging) return
-  messaging.onBackgroundMessage((payload) => {
-    const { title, body, icon, badge, data } = payload.notification ?? {}
-    self.registration.showNotification(title ?? 'Fitterverse', {
-      body:  body  ?? '',
-      icon:  icon  ?? '/favicons/pwa-192.svg',
-      badge: badge ?? '/favicons/favicon-32.svg',
-      data:  payload.data ?? {},
-      tag:   payload.data?.type ?? 'fitterverse',
-      renotify: false,
-    })
-  })
-}
-
-// Retry init in case config arrives after SW is already registered
-let initAttempts = 0
-const initInterval = setInterval(() => {
-  tryInitMessaging()
-  if (firebase.apps.length || ++initAttempts > 10) clearInterval(initInterval)
-}, 500)
