@@ -13,6 +13,7 @@ export async function proxy(request: NextRequest) {
     '/login',
     '/signup',
     '/api/auth/session',
+    '/api/notifications/send',
   ]
   const guestOnlyRoutes = ['/login', '/signup']
   const publicExactRoutes = ['/', '/robots.txt', '/sitemap.xml']
