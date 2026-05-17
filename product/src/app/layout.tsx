@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/features/website/lib/site";
-import { GoogleAnalytics } from "@next/third-parties/google";
+import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import Script from "next/script";
 
 export const viewport: Viewport = {
@@ -60,6 +60,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark h-full antialiased">
+      <GoogleTagManager gtmId="GTM-NJRJHF6Z" />
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-background text-foreground">
         {children}
         <Toaster richColors position="top-center" />
