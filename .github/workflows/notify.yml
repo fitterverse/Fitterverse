@@ -1,0 +1,66 @@
+# Fitterverse Notification Cron
+# Calls the protected /api/notifications/send endpoint at 4 IST slots daily.
+# All times below are UTC (IST = UTC+5:30).
+#
+# Slots:
+#   morning  → 09:00 IST = 03:30 UTC   (motivation quote)
+#   lunch    → 13:00 IST = 07:30 UTC   (meal reminder)
+#   workout  → 18:00 IST = 12:30 UTC   (workout reminder)
+#   evening  → 20:00 IST = 14:30 UTC   (streak alert + dinner)
+#
+# Required GitHub secret: CRON_SECRET  (same value as CRON_SECRET in Firebase env)
+# Required GitHub secret: APP_URL      (https://fitterverse.in)
+
+name: Push Notifications
+
+on:
+  schedule:
+    - cron: '30 3 * * *'   # morning  — 09:00 IST
+    - cron: '30 7 * * *'   # lunch    — 13:00 IST
+    - cron: '30 12 * * *'  # workout  — 18:00 IST
+    - cron: '30 14 * * *'  # evening  — 20:00 IST
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: 'Slot to trigger manually'
+        required: true
+        type: choice
+        options: [morning, lunch, workout, evening]
+
+jobs:
+  send:
+    name: Send notifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Determine slot
+        id: slot
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.slot }}" >> $GITHUB_OUTPUT
+          else
+            HOUR_MINUTE="${{ github.event.schedule }}"
+            case "$HOUR_MINUTE" in
+              "30 3 * * *")  echo "name=morning"  >> $GITHUB_OUTPUT ;;
+              "30 7 * * *")  echo "name=lunch"    >> $GITHUB_OUTPUT ;;
+              "30 12 * * *") echo "name=workout"  >> $GITHUB_OUTPUT ;;
+              "30 14 * * *") echo "name=evening"  >> $GITHUB_OUTPUT ;;
+              *)             echo "name=evening"  >> $GITHUB_OUTPUT ;;
+            esac
+          fi
+
+      - name: Fire notification slot
+        run: |
+          SLOT="${{ steps.slot.outputs.name }}"
+          echo "Sending slot: $SLOT"
+          RESPONSE=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/notifications/send?slot=$SLOT")
+          echo "HTTP $RESPONSE"
+          cat /tmp/resp.json
+          if [ "$RESPONSE" != "200" ]; then
+            echo "::error::Notification send failed with HTTP $RESPONSE"
+            exit 1
+          fi
