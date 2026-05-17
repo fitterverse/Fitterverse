@@ -88,20 +88,52 @@ async function recomputeDailyScore(userId: string, date: string) {
 
 async function updateStreak(userId: string, date: string, totalPoints: number) {
   const supabase = createClient()
-  const { data: streakData } = await supabase
+  const { data: existing } = await supabase
     .from('user_streaks')
     .select('*')
     .eq('user_id', userId)
     .single()
 
-  if (!streakData || streakData.last_updated === date) return
+  const isGoodDay = totalPoints >= 6
+
+  // Provide zero-state defaults for first-time users (no row yet)
+  const streakData = existing ?? {
+    user_id: userId,
+    current_streak: 0,
+    longest_streak: 0,
+    consecutive_bad_days: 0,
+    last_updated: null as unknown as string,
+    streak_start_date: null,
+  }
+
+  const alreadyUpdatedToday = streakData.last_updated === date
+
+  if (alreadyUpdatedToday) {
+    // Only re-evaluate when today flips from bad → good (more meals logged)
+    const todayWasBad = streakData.consecutive_bad_days > 0
+    if (!todayWasBad || !isGoodDay) return
+
+    // Roll back the bad-day increment that was recorded earlier today, then apply as good day
+    const preToday = {
+      ...streakData,
+      consecutive_bad_days: Math.max(0, streakData.consecutive_bad_days - 1),
+      last_updated: null as unknown as string,
+    }
+    const newStreak = calculateNewStreak(preToday, totalPoints, date)
+    await supabase.from('user_streaks').upsert(
+      { ...newStreak, user_id: userId, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    )
+    return
+  }
 
   const newStreak = calculateNewStreak(streakData, totalPoints, date)
 
-  await supabase
-    .from('user_streaks')
-    .update({ ...newStreak, updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
+  // upsert handles both new users (INSERT) and existing users (UPDATE)
+  await supabase.from('user_streaks').upsert(
+    { ...newStreak, user_id: userId, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  )
 
   const { data: earnedBadges } = await supabase
     .from('user_badges')
