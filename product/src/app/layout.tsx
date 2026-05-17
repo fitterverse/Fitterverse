@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/features/website/lib/site";
-import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
-import Script from "next/script";
+import { GoogleTagManager } from "@next/third-parties/google";
 
 export const viewport: Viewport = {
   themeColor: "#0B0F0D",
@@ -65,15 +64,6 @@ export default function RootLayout({
         {children}
         <Toaster richColors position="top-center" />
       </body>
-      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID!} />
-      <Script id="meta-pixel" strategy="afterInteractive">{`
-        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
-        (window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init','980706317837045');fbq('track','PageView');
-      `}</Script>
     </html>
   );
 }
