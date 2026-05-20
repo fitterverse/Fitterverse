@@ -134,23 +134,23 @@ Five to six hours, even if you have adapted to it and it no longer feels bad, is
 
 ## Frequently Asked Questions
 
-**Can I lose weight on six hours of sleep if my diet is good?**
+### Can I lose weight on six hours of sleep if my diet is good?
 
 You can lose some weight, but significantly less efficiently than you would with adequate sleep. Poor sleep raises cortisol, impairs insulin sensitivity, and disrupts hunger hormones — all of which counteract caloric deficit. People in the same caloric deficit but with better sleep consistently lose more fat and retain more muscle.
 
-**I fall asleep quickly and sleep deeply. Does duration still matter?**
+### I fall asleep quickly and sleep deeply. Does duration still matter?
 
 Duration and quality both matter. If you fall asleep quickly and wake feeling rested after six hours, you may be an efficient sleeper — but research on metabolic effects suggests that seven hours remains the floor for most adults regardless of subjective sleep quality. You can feel fine and still be experiencing hormonal disruption below that threshold.
 
-**Does exercise help with sleep?**
+### Does exercise help with sleep?
 
 Yes — significantly. Regular moderate exercise improves both sleep onset and sleep quality. The timing matters: exercise in the morning or afternoon generally improves sleep. Intense exercise late at night (after 9pm) can delay sleep in some people by increasing alertness and body temperature. If evening workouts are your only option, they are still better than no exercise, but earlier sessions compound both fitness and sleep benefits.
 
-**What if I have young children and cannot control my sleep hours?**
+### What if I have young children and cannot control my sleep hours?
 
 This is a genuine constraint, not a failure. Focus on sleep quality over duration: make the hours you do get as restorative as possible (cool room, dark environment, no screens). Nap when possible. As the acute phase passes, gradually extend sleep duration. The goal is not perfection — it is getting as close to seven hours as your actual life allows.
 
-**Is a melatonin supplement helpful?**
+### Is a melatonin supplement helpful?
 
 Melatonin is effective specifically for sleep onset — helping you fall asleep faster, particularly if your schedule is irregular or shifted. It does not extend deep sleep. A low dose (0.5–1mg) is as effective as higher doses for most people and is worth trying if sleep onset is your main issue. It is not a substitute for addressing the underlying reasons (late screens, inconsistent wake times, high stress) that are disrupting your sleep rhythm.
 

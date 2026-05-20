@@ -219,27 +219,27 @@ This is a completely reasonable day of food — traditional, satisfying, and wit
 
 ## Frequently Asked Questions
 
-**Are Indian foods generally high in calories?**
+### Are Indian foods generally high in calories?
 
 Not inherently. Indian home cooking — dal, sabzi, roti, and rice in reasonable portions — is nutritionally balanced and not especially high in calories. The variables that push Indian food into high-calorie territory are cooking oil and ghee quantities (especially in restaurant cooking), portion sizes, and frequency of fried or cream-heavy dishes.
 
-**Is rice or roti higher in calories?**
+### Is rice or roti higher in calories?
 
 They're comparable. One medium roti is approximately 75–85 kcal. One cup of cooked rice is approximately 200–220 kcal. If you're eating two rotis versus half a cup of rice, the calories are similar. The choice between them is largely a cultural and personal preference rather than a significant health distinction for most people.
 
-**How do I count calories in meals I didn't cook?**
+### How do I count calories in meals I didn't cook?
 
 Use the estimates in this guide as ranges rather than precise numbers, and trend toward the higher end for restaurant food (which typically uses more oil than home cooking). If you're tracking calories, log your best estimate and don't stress precision — the pattern over days and weeks matters more than any single meal's exact count.
 
-**Does eating ghee make a big difference?**
+### Does eating ghee make a big difference?
 
 Yes, more than most people expect. Ghee is a pure fat — 1 tablespoon is approximately 135 kcal. Two tablespoons across a day (on rotis, in dal, in sabzi) adds about 270 kcal of fat. This isn't a reason to eliminate ghee — it has a place in a healthy Indian diet — but it's worth knowing that ghee adds up quickly in ways that aren't always visible.
 
-**What's the most calorie-dense Indian dish?**
+### What's the most calorie-dense Indian dish?
 
 Restaurant-style chole bhature, dal makhani with cream, and biryani with generous portions are among the highest. A full restaurant serving of chole bhature can be 700–900 kcal. Dal makhani with butter naan at a restaurant can easily exceed 800 kcal for the combination.
 
-**Can I lose weight eating Indian food?**
+### Can I lose weight eating Indian food?
 
 Absolutely. A calorie deficit is a calorie deficit regardless of the cuisine. The key is portion awareness (especially of oil and ghee), reducing restaurant meals where invisible fats are highest, and eating more vegetables and lentils relative to fried or cream-based dishes. Traditional Indian food is actually very well-suited to weight management when the oil quantity is controlled.
 

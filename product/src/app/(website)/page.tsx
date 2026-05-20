@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   Apple,
@@ -201,9 +202,17 @@ export default async function WebsiteHomePage() {
       <section className="px-4 pb-10 pt-10 sm:px-6 sm:pb-14 sm:pt-14 lg:px-8 lg:pb-20 lg:pt-20">
         <div className="mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center lg:gap-12">
           <div className="space-y-6 sm:space-y-8">
-            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-primary/90 sm:text-xs sm:tracking-[0.22em]">
-              <Flame className="h-3.5 w-3.5 shrink-0" />
-              Accountability partner · not a tracker
+            <div className="inline-flex items-center gap-3">
+              <Image
+                src="/logo-mark.svg"
+                alt="Fitterverse"
+                width={44}
+                height={44}
+                className="shrink-0 rounded-2xl"
+              />
+              <span className="font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                {siteConfig.shortName}
+              </span>
             </div>
 
             <div className="space-y-4 sm:space-y-5">

@@ -96,3 +96,21 @@ It is:
 - Logging what happens without judgment
 
 When late-night eating drops, it usually happens because the whole day became more stable, not because your willpower suddenly became superhuman.
+
+## Frequently Asked Questions
+
+### Is eating at night always bad for weight loss?
+
+No. The bigger issue is usually total intake and the pattern that drives the eating. Night eating becomes a problem when it is automatic, stress-driven, or stacked on top of under-eating earlier in the day.
+
+### What should I do if I am genuinely hungry after dinner?
+
+Use a simple planned option instead of random snacking. Something like curd, fruit, or a small protein-based snack is usually better than eating directly from whatever is easiest to grab.
+
+### Does skipping meals cause more late-night eating?
+
+Often, yes. Long gaps and under-eating earlier in the day make evening hunger harder to control. Better daytime structure usually reduces night cravings more than stricter evening rules.
+
+### How long does it take to improve late-night eating?
+
+Many people notice changes within one to two weeks once lunch, dinner, and evening routines become more predictable. The timeline depends on how much of the pattern is hunger-driven versus stress-driven.

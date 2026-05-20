@@ -24,13 +24,8 @@ export function SiteHeader() {
             height={36}
             className="shrink-0 rounded-xl sm:w-10 sm:h-10"
           />
-          <span className="min-w-0">
-            <span className="block truncate font-heading text-sm font-semibold tracking-tight text-foreground sm:text-base">
-              {siteConfig.shortName}
-            </span>
-            <span className="hidden text-xs text-muted-foreground sm:block">
-              Accountability partner · not a tracker
-            </span>
+          <span className="block truncate font-heading text-sm font-semibold tracking-tight text-foreground sm:text-base">
+            {siteConfig.shortName}
           </span>
         </Link>
 

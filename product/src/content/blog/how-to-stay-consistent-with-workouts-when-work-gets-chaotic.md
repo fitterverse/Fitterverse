@@ -111,3 +111,21 @@ Workout consistency gets stronger when the system is:
 Motivation matters, but structure matters more.
 
 If your week is chaotic, the answer is not to wait for a better week. It is to build a plan that can still function inside this one.
+
+## Frequently Asked Questions
+
+### What if I only have 10 minutes to work out?
+
+Do the minimum viable version. Ten focused minutes of squats, push-ups, hinges, or brisk walking is still better than turning the day into a zero.
+
+### How many workouts are enough during a busy week?
+
+Two to three sessions are enough to preserve momentum for most people. The goal during chaotic weeks is continuity, not peak performance.
+
+### Should I skip training when work stress is high?
+
+Not automatically. You may need a shorter or easier session, but some movement often improves stress more than doing nothing. Adjust the dose instead of deleting the habit.
+
+### Do home workouts count when work gets chaotic?
+
+Absolutely. Home sessions remove travel friction and make consistency easier. If the alternative is skipping training, the home workout is the better system.

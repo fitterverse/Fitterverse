@@ -150,7 +150,7 @@ If you are generally healthy, not in any of the above categories, and carrying e
 
 ---
 
-## The First Two Weeks Are the Hardest
+### The first two weeks are the hardest
 
 Almost everyone who tries IF for the first time finds the first week uncomfortable. Morning hunger is real. Concentration dips slightly. You may feel irritable by 11am.
 
@@ -162,23 +162,23 @@ Give it two weeks before deciding it does not work for you. Most people who push
 
 ## Frequently Asked Questions
 
-**Will skipping breakfast slow my metabolism?**
+### Will skipping breakfast slow my metabolism?
 
 No. The idea that "breakfast kickstarts your metabolism" is not supported by current evidence. Metabolic rate is determined primarily by lean body mass, not meal timing. Short-term fasting does not reduce metabolic rate — in fact, short fasts slightly increase norepinephrine, which marginally boosts metabolism.
 
-**Can I do IF on a vegetarian diet?**
+### Can I do IF on a vegetarian diet?
 
 Perfectly. Most vegetarian Indian foods — dal, rice, roti, sabzi, paneer, curd — are ideal for an eating window. The only change is timing, not food composition.
 
-**Will IF cause muscle loss?**
+### Will IF cause muscle loss?
 
 Only if you are in a significant calorie deficit *and* not consuming enough protein. IF with adequate protein intake and some resistance exercise (even bodyweight workouts) preserves muscle well. The research on this is quite consistent.
 
-**Can I drink water during the fast?**
+### Can I drink water during the fast?
 
 Yes. Water, black coffee, black tea, and plain green tea are all acceptable during the fasting window. They do not raise insulin meaningfully and some research suggests caffeine slightly enhances the fat-burning effect of the fasting state.
 
-**Does IF work for women the same way as men?**
+### Does IF work for women the same way as men?
 
 There is some evidence that women's hormonal systems are more sensitive to fasting-related stress, particularly at extreme restriction levels. 16:8 is generally well-tolerated by most women; very long fasts (20+ hours, OMAD) may cause menstrual disruption in some women. If you notice changes in your cycle after starting IF, reduce the fasting window or consult a doctor.
 

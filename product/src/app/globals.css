@@ -1,7 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 @custom-variant dark (&:is(.dark *));
 
@@ -160,13 +160,13 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-text);
+    font-family: var(--font-text, "Hanken Grotesk", system-ui, sans-serif);
   }
   html {
     @apply font-sans;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
+    font-family: var(--font-display, "Hanken Grotesk", system-ui, sans-serif);
     letter-spacing: -0.02em;
     line-height: 1.12;
   }
@@ -174,12 +174,12 @@
 
 /* Data/number display — use for streak counts, scores, calories */
 .fv-data {
-  font-family: var(--font-data);
+  font-family: var(--font-data, ui-monospace, "SFMono-Regular", monospace);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 .fv-label {
-  font-family: var(--font-data);
+  font-family: var(--font-data, ui-monospace, "SFMono-Regular", monospace);
   font-size: 0.72rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -219,6 +219,14 @@
   @apply text-base leading-8 text-foreground/80 md:text-[1.05rem];
 }
 
+.article-prose a {
+  @apply font-medium;
+}
+
+.article-prose strong {
+  @apply font-semibold text-foreground;
+}
+
 .article-prose ul,
 .article-prose ol {
   @apply ml-6 space-y-3 text-base leading-8 text-foreground/80 md:text-[1.05rem];
@@ -230,4 +238,24 @@
 
 .article-prose blockquote {
   @apply border-l-2 border-primary/50 pl-5 text-base italic leading-8 text-foreground/70 md:text-[1.05rem];
+}
+
+.article-prose hr {
+  @apply my-8 border-white/10;
+}
+
+.article-prose table {
+  @apply mt-6 w-full border-collapse overflow-hidden rounded-2xl border border-white/10 text-left text-sm text-foreground/80;
+}
+
+.article-prose thead {
+  @apply bg-white/[0.04];
+}
+
+.article-prose th {
+  @apply px-4 py-3 font-semibold text-foreground;
+}
+
+.article-prose td {
+  @apply border-t border-white/10 px-4 py-3 align-top;
 }

@@ -162,23 +162,23 @@ The goal right now isn't to transform your body in 21 days. The goal is to becom
 
 ## Frequently Asked Questions
 
-**Why do I always feel motivated to start but can't maintain it?**
+### Why do I always feel motivated to start but can't maintain it?
 
 Motivation is emotion-driven and short-lived by design. It's excellent for getting you started, but it can't carry you through ordinary Tuesdays. Systems and structure do that. Build a daily routine that requires minimal decision-making, and you won't need motivation to be consistent.
 
-**Is it normal to have bad days even when you're being consistent?**
+### Is it normal to have bad days even when you're being consistent?
 
 Completely normal. Consistency means a high percentage of good days over time — not a perfect record. Expecting zero bad days is what leads to the all-or-nothing trap. Aim for 80% good days and a quick recovery on the other 20%.
 
-**How do I stop feeling guilty about missing a day?**
+### How do I stop feeling guilty about missing a day?
 
 Reframe what a missed day means. It's not a failure of character — it's data. What made that day hard? Was it unexpected work? A social event? Fatigue? Understanding why is more useful than guilt. One missed day doesn't undo your progress. Two in a row is worth paying attention to.
 
-**What's the single most effective thing I can do to stay consistent?**
+### What's the single most effective thing I can do to stay consistent?
 
 Make your daily check-in as small and frictionless as possible. A habit that takes 60 seconds and happens at the same time every day will beat an elaborate system that you follow enthusiastically for two weeks. Start small. Stay consistent. Add detail later.
 
-**Does tracking actually help with consistency?**
+### Does tracking actually help with consistency?
 
 Yes — significantly. Tracking makes the invisible visible. You can't improve what you don't measure. But the form of tracking matters. A simple daily quality rating ("healthy / medium / junk") is more sustainable than counting every calorie, and it still gives you actionable information about your patterns.
 

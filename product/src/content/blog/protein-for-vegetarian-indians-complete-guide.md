@@ -163,23 +163,23 @@ But for most people eating a varied Indian vegetarian diet with intentional prot
 
 ## Frequently Asked Questions
 
-**Is Indian vegetarian food enough for good protein intake?**
+### Is Indian vegetarian food enough for good protein intake?
 
 Yes — but it requires intention. The ingredients exist (dal, soya, paneer, curd, peanuts, legumes), but most standard Indian meals are carbohydrate-heavy and the protein portions are too small. The fix is not to change what you eat but to increase the proportion of protein-dense ingredients in each meal.
 
-**Can I get complete proteins from a vegetarian diet?**
+### Can I get complete proteins from a vegetarian diet?
 
 Yes. Plant proteins are often "incomplete" individually — meaning they lack one or more essential amino acids. But combining complementary sources covers all amino acids. Dal + rice, dal + roti, curd + grain, peanuts + grain — all of these are complete proteins. You do not need to calculate this precisely. Eating variety across the day is sufficient.
 
-**Does protein help with weight loss specifically?**
+### Does protein help with weight loss specifically?
 
 Significantly. Protein increases satiety (you stay full longer), has a higher thermic effect (burns more calories during digestion), and protects muscle during a calorie deficit. People eating adequate protein in a calorie deficit tend to lose more fat and retain more muscle than those in the same deficit but eating low protein.
 
-**Will eating more protein damage my kidneys?**
+### Will eating more protein damage my kidneys?
 
 This concern applies specifically to people with pre-existing kidney disease. For healthy adults with normal kidney function, high protein diets at the ranges discussed here (up to 2g/kg) are safe and well-tolerated. If you have a diagnosed kidney condition, consult a doctor before increasing protein significantly.
 
-**How do I know if I'm protein-deficient?**
+### How do I know if I'm protein-deficient?
 
 Signs include: frequent hunger even after meals, slow muscle recovery after exercise, hair thinning, difficulty losing fat while dieting, and persistent low energy. The simplest check is to calculate your current daily intake using a food log for a few days and compare it to your body weight targets above.
 

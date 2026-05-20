@@ -113,7 +113,7 @@ This is not a crash diet. It's a manageable reduction that her body can sustain 
 
 ---
 
-## Why You Shouldn't Create Too Large a Deficit
+### Why you shouldn't create too large a deficit
 
 This is the part most diet plans get wrong.
 
@@ -131,7 +131,7 @@ The sweet spot for most people is a **moderate deficit: 400–600 calories below
 
 ---
 
-## How Your TDEE Changes Over Time
+### How your TDEE changes over time
 
 This is important and often overlooked.
 
@@ -191,35 +191,31 @@ Wait — that's only 1,520, not 2,333. The gap highlights something important: 2
 
 ---
 
-## Common Questions About BMR and TDEE
+## Frequently Asked Questions
 
-**What if I'm not sure which activity level to pick?**
+### What if I'm not sure which activity level to pick?
 
 When in doubt, start lower. Most people overestimate their activity level. A desk job with 3 gym sessions per week is typically "lightly active" (×1.375), not "moderately active" (×1.55). Start conservative, see how your weight responds over 2–3 weeks, and adjust from there. The numbers are a starting estimate, not a fixed answer.
 
-**Can I eat back my workout calories?**
+### Can I eat back my workout calories?
 
 The calorie multipliers in the TDEE calculation already account for your exercise level, so you don't need to add workout calories on top. If you used the "lightly active" multiplier but worked out hard that day, you've slightly underestimated your TDEE for the day — which is fine and actually helpful when you're trying to maintain a deficit.
 
-**My calories seem low — am I going to feel hungry all the time?**
+### My calories seem low — am I going to feel hungry all the time?
 
 This depends more on what you eat than how much. A diet of 1,800 calories built around dal, vegetables, whole grain rotis, eggs, and yoghurt is far more filling than 1,800 calories of processed food. Protein and fibre are the two nutrients most closely tied to satiety — prioritise both and hunger becomes much more manageable.
 
-**How often should I recalculate my TDEE?**
+### How often should I recalculate my TDEE?
 
 Recalculate every time your weight changes by 5 kg or more, or if your activity level changes significantly. This keeps your targets accurate and prevents the plateau that comes from eating a target that no longer matches your current body.
 
-**Is BMR the same as RMR?**
+### Is BMR the same as RMR?
 
 Very similar, but not identical. RMR (Resting Metabolic Rate) includes some low-level activity like sitting and digesting, so it's typically 10–15% higher than true BMR. In practice, most calculators and fitness apps use the terms interchangeably, and the difference rarely matters for practical tracking.
 
-**What happens to BMR after a long period of dieting?**
+### What happens to BMR after a long period of dieting?
 
 BMR can decrease by 5–15% after extended periods of calorie restriction — sometimes called "metabolic adaptation" or colloquially "starvation mode." This is one of the reasons diet breaks (returning to maintenance calories for 1–2 weeks) are sometimes recommended for people doing extended weight loss phases. It's also an argument for not cutting calories too aggressively — the deeper the deficit, the more significant the metabolic response.
-
----
-
-## The Bottom Line
 
 Here's the short version of everything above:
 

@@ -79,3 +79,21 @@ Meal logging becomes sustainable when it is:
 - Forgiving enough to survive imperfect weeks
 
 That is the standard worth building around. A habit that only works when life is perfectly organized is not a habit. It is a temporary performance.
+
+## Frequently Asked Questions
+
+### Do I need to log exact calories every time?
+
+No. If exact calorie tracking makes the habit feel heavy, start with meal quality, rough portions, and short notes. Precision is useful only when it does not destroy consistency.
+
+### What if I forget to log a meal?
+
+Log it as soon as you remember and keep it approximate. The goal is not a flawless record. The goal is to keep the habit loop alive instead of turning one miss into a reset.
+
+### How long does meal logging take to become automatic?
+
+For most people, it starts feeling easier within one to two weeks when it is tied directly to meals. Speed matters more than depth at the beginning.
+
+### Should I log junk meals too?
+
+Yes. Selective logging defeats the point. Honest visibility is what helps you see patterns and improve them over time.

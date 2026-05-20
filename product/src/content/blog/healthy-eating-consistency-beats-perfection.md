@@ -84,3 +84,21 @@ Those questions create momentum instead of guilt.
 Perfection is emotionally loud but operationally weak. Consistency is quieter, but it wins.
 
 The people who make long-term progress are rarely the ones with the cleanest short streak of flawless days. They are the ones who can keep returning to the system, especially after imperfect moments.
+
+## Frequently Asked Questions
+
+### Can I still eat sweets or restaurant food and be consistent?
+
+Yes. Consistency does not require perfect food choices every day. It requires a pattern where better meals happen often enough to outweigh the less structured ones.
+
+### What should I do after an overeating day?
+
+Return to your next normal meal. Do not try to punish the day with extreme restriction. Fast recovery is more useful than dramatic compensation.
+
+### Is consistency more important than perfection for weight loss?
+
+Yes. Weight loss depends on repeatable eating patterns over time, not a short burst of flawless days. A good-enough system that survives real life beats a perfect system that collapses every weekend.
+
+### How do I stay consistent on weekends?
+
+Lower the standard from perfect control to a few non-negotiables: eat a reasonable breakfast, keep one balanced meal anchored, and avoid turning one heavy meal into an all-day slide.
