@@ -10,6 +10,8 @@ export interface ArticleSchemaOptions {
   dateModified?: string
   author?: AuthorSchema
   tags?: string[]
+  sections?: string[]
+  wordCount?: number
 }
 
 export interface FaqItem {
@@ -66,7 +68,7 @@ export function articleSchema(opts: ArticleSchemaOptions) {
   const canonicalUrl = `${siteConfig.url}/blog/${opts.slug}`
 
   return {
-    '@type': 'Article',
+    '@type': 'BlogPosting',
     '@id': `${canonicalUrl}#article`,
     headline: opts.title,
     description: opts.description,
@@ -82,6 +84,9 @@ export function articleSchema(opts: ArticleSchemaOptions) {
     publisher: { '@id': `${siteConfig.url}/#organization` },
     mainEntityOfPage: canonicalUrl,
     inLanguage: 'en-IN',
+    isAccessibleForFree: true,
+    ...(opts.sections?.length ? { articleSection: opts.sections } : {}),
+    ...(opts.wordCount ? { wordCount: opts.wordCount } : {}),
     ...(opts.tags?.length ? { keywords: opts.tags.join(', ') } : {}),
   }
 }

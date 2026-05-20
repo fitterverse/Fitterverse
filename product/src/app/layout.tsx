@@ -37,7 +37,6 @@ export const metadata: Metadata = {
     ],
     apple: "/favicons/apple-touch-icon-180.svg",
   },
-  manifest: "/favicons/manifest.webmanifest",
   openGraph: {
     type: "website",
     siteName: siteConfig.name,
@@ -58,7 +57,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark h-full antialiased">
+    <html lang="en" suppressHydrationWarning className="dark h-full antialiased">
       <GoogleTagManager gtmId="GTM-NJRJHF6Z" />
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-background text-foreground">
         {children}

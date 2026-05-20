@@ -16,6 +16,8 @@ export interface BlogPost {
   body: string
   excerpt: string
   readingTime: string
+  wordCount: number
+  faqs: Array<{ question: string; answer: string }>
 }
 
 function unquote(value: string) {
@@ -31,10 +33,67 @@ function getExcerpt(body: string) {
   return (firstParagraph || body).replace(/\n/g, ' ').trim().slice(0, 180)
 }
 
-function getReadingTime(body: string) {
-  const words = body.split(/\s+/).filter(Boolean).length
-  const minutes = Math.max(3, Math.ceil(words / 180))
+function getWordCount(body: string) {
+  return body.split(/\s+/).filter(Boolean).length
+}
+
+function getReadingTime(wordCount: number) {
+  const minutes = Math.max(3, Math.ceil(wordCount / 180))
   return `${minutes} min read`
+}
+
+function extractFaqs(body: string) {
+  const lines = body.split('\n')
+  const faqs: Array<{ question: string; answer: string }> = []
+  const faqHeadingPattern = /^##\s+(frequently asked questions|faq|faqs)\s*$/i
+  const sectionHeadingPattern = /^##\s+/
+  const questionHeadingPattern = /^###\s+/
+  let inFaqSection = false
+  let question: string | null = null
+  let answerLines: string[] = []
+
+  function flushFaq() {
+    if (!question) return
+
+    const answer = answerLines.join(' ').trim()
+    if (answer) {
+      faqs.push({ question, answer })
+    }
+
+    question = null
+    answerLines = []
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+
+    if (!inFaqSection) {
+      if (faqHeadingPattern.test(line)) {
+        inFaqSection = true
+      }
+      continue
+    }
+
+    if (sectionHeadingPattern.test(line) && !faqHeadingPattern.test(line)) {
+      flushFaq()
+      break
+    }
+
+    if (questionHeadingPattern.test(line)) {
+      flushFaq()
+      question = line.replace(questionHeadingPattern, '').trim()
+      continue
+    }
+
+    if (!line) continue
+    if (!question) continue
+
+    answerLines.push(line.replace(/^[-*]\s+/, ''))
+  }
+
+  flushFaq()
+
+  return faqs
 }
 
 function parseMarkdownFile(raw: string, fallbackSlug: string): BlogPost {
@@ -60,6 +119,7 @@ function parseMarkdownFile(raw: string, fallbackSlug: string): BlogPost {
   }
 
   const body = rawBody.trim()
+  const wordCount = getWordCount(body)
 
   return {
     title: frontmatter.title || fallbackSlug,
@@ -74,7 +134,9 @@ function parseMarkdownFile(raw: string, fallbackSlug: string): BlogPost {
     featured: frontmatter.featured === 'true',
     body,
     excerpt: getExcerpt(body),
-    readingTime: getReadingTime(body),
+    readingTime: getReadingTime(wordCount),
+    wordCount,
+    faqs: extractFaqs(body),
   }
 }
 

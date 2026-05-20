@@ -2,8 +2,11 @@ import Link from 'next/link'
 import { format, parseISO } from 'date-fns'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { notFound } from 'next/navigation'
+import { BlogReadingProgress } from '@/features/website/components/blog-reading-progress'
 import { BlogMarkdown } from '@/features/website/components/blog-markdown'
-import { JsonLd, articleSchema, breadcrumbSchema, schemaGraph, blogPostMetadata } from '@/features/seo'
+import { BlogTableOfContents } from '@/features/website/components/blog-table-of-contents'
+import { extractBlogHeadings } from '@/features/website/lib/blog-headings'
+import { JsonLd, articleSchema, breadcrumbSchema, faqSchema, schemaGraph, blogPostMetadata } from '@/features/seo'
 import { getAllPostSlugs, getPostBySlug, getRelatedPosts } from '@/features/website/lib/blog'
 import { siteConfig } from '@/features/website/lib/site'
 
@@ -30,26 +33,35 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const post = await getPostBySlug(slug)
   if (!post) notFound()
 
+  const headings = extractBlogHeadings(post.body)
+  const sectionHeadings = headings.filter(heading => heading.level === 2)
+  const tocHeadings = sectionHeadings.slice(0, 8)
   const relatedPosts = await getRelatedPosts(post.slug)
+  const structuredDataNodes: Record<string, unknown>[] = [
+    articleSchema({
+      title: post.title,
+      description: post.description,
+      slug: post.slug,
+      datePublished: post.date,
+      tags: post.tags,
+      sections: sectionHeadings.map(heading => heading.text),
+      wordCount: post.wordCount,
+    }),
+    breadcrumbSchema([
+      { name: 'Home', item: siteConfig.url },
+      { name: 'Blog', item: `${siteConfig.url}/blog` },
+      { name: post.title, item: `${siteConfig.url}/blog/${post.slug}` },
+    ]),
+  ]
+
+  if (post.faqs.length > 0) {
+    structuredDataNodes.push(faqSchema(post.faqs))
+  }
 
   return (
     <>
-      <JsonLd
-        data={schemaGraph(
-          articleSchema({
-            title: post.title,
-            description: post.description,
-            slug: post.slug,
-            datePublished: post.date,
-            tags: post.tags,
-          }),
-          breadcrumbSchema([
-            { name: 'Home', item: siteConfig.url },
-            { name: 'Blog', item: `${siteConfig.url}/blog` },
-            { name: post.title, item: `${siteConfig.url}/blog/${post.slug}` },
-          ]),
-        )}
-      />
+      <JsonLd data={schemaGraph(...structuredDataNodes)} />
+      <BlogReadingProgress />
 
       <section className="px-4 pb-20 pt-12 sm:px-6 lg:px-8 lg:pb-24 lg:pt-16">
         <div className="mx-auto w-full max-w-6xl">
@@ -59,7 +71,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </Link>
 
           <div className="mt-8 grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <article>
+            <article data-blog-article>
               <div className="max-w-3xl">
                 <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary/78">
                   <span>{post.category}</span>
@@ -85,12 +97,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </div>
               </div>
 
+              <div className="mt-8 lg:hidden">
+                <BlogTableOfContents headings={tocHeadings} compact />
+              </div>
+
               <div className="mt-10 rounded-[2rem] border border-white/8 bg-white/[0.03] p-7 sm:p-8">
                 <BlogMarkdown content={post.body} />
               </div>
             </article>
 
-            <aside className="space-y-4">
+            <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
+              <div className="hidden lg:block">
+                <BlogTableOfContents headings={tocHeadings} />
+              </div>
+
               <div className="rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/75">
                   Keep building
@@ -118,29 +138,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </div>
               </div>
 
-              {relatedPosts.length > 0 && (
-                <div className="rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-6">
-                  <p className="text-sm font-semibold text-foreground">Related articles</p>
-                  <div className="mt-5 space-y-4">
-                    {relatedPosts.map(relatedPost => (
-                      <Link
-                        key={relatedPost.slug}
-                        href={`/blog/${relatedPost.slug}`}
-                        className="block rounded-2xl border border-white/8 bg-background/40 p-4 transition hover:border-primary/20"
-                      >
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/75">
-                          {relatedPost.category}
-                        </p>
-                        <p className="mt-2 text-base font-semibold leading-6 text-foreground">
-                          {relatedPost.title}
-                        </p>
-                        <p className="mt-2 text-sm text-foreground/58">{relatedPost.readingTime}</p>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-6">
                 <p className="text-sm font-semibold text-foreground">Tags</p>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -157,12 +154,55 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </aside>
           </div>
 
-          <div className="mt-12 flex justify-end">
-            <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-              More articles
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+          {relatedPosts.length > 0 && (
+            <section className="mt-14">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/75">
+                    Keep reading
+                  </p>
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                    Related articles
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-foreground/68">
+                    Continue with the next practical guide while the ideas from this article are still fresh.
+                  </p>
+                </div>
+
+                <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                  More articles
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {relatedPosts.map(relatedPost => (
+                  <Link
+                    key={relatedPost.slug}
+                    href={`/blog/${relatedPost.slug}`}
+                    className="block rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-6 transition hover:border-primary/20"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/75">
+                      {relatedPost.category}
+                    </p>
+                    <p className="mt-3 text-xl font-semibold leading-7 text-foreground">
+                      {relatedPost.title}
+                    </p>
+                    <p className="mt-3 text-sm leading-7 text-foreground/68">{relatedPost.readingTime}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {relatedPosts.length === 0 && (
+            <div className="mt-12 flex justify-end">
+              <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                More articles
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
     </>
