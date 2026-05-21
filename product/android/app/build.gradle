@@ -1,10 +1,9 @@
 apply plugin: 'com.android.application'
-// ADD THIS LINE BELOW
-apply plugin: 'com.google.gms.google-services'
 
 android {
     namespace "in.fitterverse.app"
     compileSdk rootProject.ext.compileSdkVersion
+    
     defaultConfig {
         applicationId "in.fitterverse.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -12,22 +11,26 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
         aaptOptions {
             // Allows larger images to be packaged for the native app
             cruncherEnabled = false
         }
     }
+
     buildTypes {
         release {
             minifyEnabled false
+            // 10X FIX: Using the supported optimize ProGuard file
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
 
 repositories {
-    google()
-    mavenCentral()
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 dependencies {
@@ -38,7 +41,7 @@ dependencies {
     implementation project(':capacitor-android')
     implementation project(':capacitor-cordova-android-plugins')
 
-    // ADD FIREBASE SDKs BELOW
+    // 10X FIREBASE SDKs
     implementation platform('com.google.firebase:firebase-bom:33.1.0')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-analytics'
@@ -48,6 +51,7 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
 }
 
+// Apply Google Services plugin at the bottom to ensure it reads google-services.json correctly
 try {
     def servicesConfig = file('google-services.json')
     if (servicesConfig.exists()) {

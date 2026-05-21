@@ -2,10 +2,10 @@
 
 import { requireSession } from '@/features/auth/server/session'
 import { createClient } from '@/server/supabase/server'
-import { revalidatePath } from 'next/cache'
 import { format } from 'date-fns'
 import type { WorkoutType, WorkoutIntensity } from '@/shared/types'
 import { calculateCaloriesBurned } from '@/features/workouts/lib/calorie-math'
+import { revalidateAppPage } from '@/server/revalidate-app-path'
 
 interface SaveWorkoutInput {
   workout_type: WorkoutType
@@ -47,8 +47,8 @@ export async function saveWorkout(input: SaveWorkoutInput) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/workout')
-  revalidatePath('/dashboard')
+  revalidateAppPage('/workout')
+  revalidateAppPage('/dashboard')
   return { success: true, calories_burned }
 }
 
@@ -64,7 +64,7 @@ export async function deleteWorkout(id: string) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/workout')
-  revalidatePath('/dashboard')
+  revalidateAppPage('/workout')
+  revalidateAppPage('/dashboard')
   return { success: true }
 }

@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { requireSession } from "@/features/auth/server/session";
 import { saveMeal } from "./actions";
 import { MealType, MealRating } from "@/shared/types";
+import { format } from "date-fns";
 
 export async function analyzeMealImage(formData: FormData) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -21,6 +22,7 @@ export async function analyzeMealImage(formData: FormData) {
 
     const image = formData.get("image") as File;
     const mealType = formData.get("mealType") as MealType;
+    const date = (formData.get("date") as string | null) || format(new Date(), 'yyyy-MM-dd');
 
     if (!image) return { error: "No image received." };
 
@@ -70,7 +72,7 @@ export async function analyzeMealImage(formData: FormData) {
       rating: aiResult.rating as MealRating,
       calories: aiResult.calories,
       note: `AI identified: ${aiResult.food_name}. ${aiResult.feedback}`,
-      date: new Date().toISOString().split('T')[0]
+      date,
     });
 
     if (saveResult?.error) {

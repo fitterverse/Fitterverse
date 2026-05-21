@@ -46,5 +46,10 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "capacitor-health-connect": "patches/capacitor-health-connect.patch"
+    }
   }
 }

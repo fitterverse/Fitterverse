@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  capacitor-health-connect:
+    hash: ac980a6dab9b2fd5d0742a52edfe0b336553dbea8a229c64592f283617128a7e
+    path: patches/capacitor-health-connect.patch
+
 importers:
 
   .:
@@ -40,7 +45,7 @@ importers:
         version: 2.105.1
       capacitor-health-connect:
         specifier: ^0.7.0
-        version: 0.7.0(@capacitor/core@8.3.4)
+        version: 0.7.0(patch_hash=ac980a6dab9b2fd5d0742a52edfe0b336553dbea8a229c64592f283617128a7e)(@capacitor/core@8.3.4)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -4530,7 +4535,7 @@ snapshots:
 
   caniuse-lite@1.0.30001791: {}
 
-  capacitor-health-connect@0.7.0(@capacitor/core@8.3.4):
+  capacitor-health-connect@0.7.0(patch_hash=ac980a6dab9b2fd5d0742a52edfe0b336553dbea8a229c64592f283617128a7e)(@capacitor/core@8.3.4):
     dependencies:
       '@capacitor/core': 8.3.4
 

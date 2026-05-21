@@ -5,8 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Fitterverse',
   webDir: 'out', 
   server: {
-    // This loads your live website inside the app shell
-    url: 'https://fitterverse.in', 
+    url: 'https://fitterverse.in', // Back to live site
     cleartext: true
   }
 };

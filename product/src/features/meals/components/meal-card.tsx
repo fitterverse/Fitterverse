@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ const RATING_OPTIONS: { value: MealRating; label: string; desc: string; emoji: s
 ]
 
 export function MealCard({ mealType, calorieLimit, existing, date }: MealCardProps) {
+  const router = useRouter()
   const [rating, setRating] = useState<MealRating | null>(existing?.rating || null)
   const [calories, setCalories] = useState(existing?.calories?.toString() || '')
   const [note, setNote] = useState(existing?.note || '')
@@ -59,6 +61,7 @@ export function MealCard({ mealType, calorieLimit, existing, date }: MealCardPro
     } else {
       setSaved(true)
       setExpanded(false)
+      router.refresh()
       toast.success(`${MEAL_LABELS[mealType]} saved! +${effectivePoints} pts`)
     }
   }
@@ -71,6 +74,7 @@ export function MealCard({ mealType, calorieLimit, existing, date }: MealCardPro
     const formData = new FormData()
     formData.append('image', file)
     formData.append('mealType', mealType)
+    formData.append('date', date)
 
     try {
       const result = await analyzeMealImage(formData)
@@ -79,6 +83,7 @@ export function MealCard({ mealType, calorieLimit, existing, date }: MealCardPro
         setRating(result.data.rating)
         setCalories(result.data.calories.toString())
         setNote(`AI detected: ${result.data.food_name}`)
+        router.refresh()
         toast.success(`AI logged ${result.data.food_name}!`)
       } else {
         toast.error(result.error || "Failed to analyze image")

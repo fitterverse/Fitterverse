@@ -11,6 +11,7 @@ import {
 } from '@/shared/types'
 import { revalidatePath } from 'next/cache'
 import { format } from 'date-fns'
+import { revalidateAppPage } from '@/server/revalidate-app-path'
 
 interface SaveMealInput {
   meal_type: MealType
@@ -49,8 +50,9 @@ export async function saveMeal({
   if (error) return { error: error.message }
 
   await recomputeDailyScore(uid, mealDate)
-  revalidatePath('/dashboard')
-  revalidatePath('/history')
+  revalidateAppPage('/dashboard')
+  revalidateAppPage('/diet')
+  revalidateAppPage('/progress')
   return { success: true }
 }
 
@@ -163,5 +165,6 @@ async function updateStreak(userId: string, date: string, totalPoints: number) {
     )
   }
 
+  revalidateAppPage('/progress')
   revalidatePath('/badges')
 }

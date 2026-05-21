@@ -2,8 +2,8 @@
 
 import { requireSession } from "@/features/auth/server/session";
 import { createClient } from "@/server/supabase/server";
-import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
+import { revalidateAppPage } from "@/server/revalidate-app-path";
 
 /**
  * 10X STEP SYNC ACTION
@@ -29,8 +29,8 @@ export async function saveDailySteps(steps: number) {
       throw new Error("Failed to update daily score steps");
     }
 
-    revalidatePath('/dashboard');
-    revalidatePath('/progress');
+    revalidateAppPage('/dashboard');
+    revalidateAppPage('/progress');
     
     return { success: true };
   } catch (error: any) {

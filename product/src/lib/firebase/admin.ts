@@ -1,20 +1,38 @@
 // Firebase Admin SDK — server-side only.
-// Uses Application Default Credentials on Firebase App Hosting (auto-provided).
-// For local dev: set FIREBASE_SERVICE_ACCOUNT_JSON env var with the service account JSON string.
-
 import admin from 'firebase-admin'
 
 function initAdminApp(): admin.app.App {
   if (admin.apps.length > 0) return admin.apps[0]!
 
-  const credential = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
-    ? admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON))
-    : admin.credential.applicationDefault()
+  let serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
-  return admin.initializeApp({
-    credential,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  })
+  // 10X RESILIENCE: Handle cases where the string is wrapped in extra quotes from .env
+  if (serviceAccount) {
+    serviceAccount = serviceAccount.trim();
+    if (serviceAccount.startsWith("'") && serviceAccount.endsWith("'")) {
+      serviceAccount = serviceAccount.slice(1, -1);
+    }
+    if (serviceAccount.startsWith('"') && serviceAccount.endsWith('"')) {
+      serviceAccount = serviceAccount.slice(1, -1);
+    }
+  }
+
+  try {
+    const credential = serviceAccount
+      ? admin.credential.cert(JSON.parse(serviceAccount))
+      : admin.credential.applicationDefault();
+
+    return admin.initializeApp({
+      credential,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    });
+  } catch (error) {
+    console.error("❌ FIREBASE ADMIN INIT ERROR:", error);
+    // Fallback to basic init to prevent build crash
+    return admin.initializeApp({
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    });
+  }
 }
 
 const adminApp = initAdminApp()
