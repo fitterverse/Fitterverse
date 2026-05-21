@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "46698969942",
+    "project_id": "fitterverse",
+    "storage_bucket": "fitterverse.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:46698969942:android:90cce005702ea0359734f7",
+        "android_client_info": {
+          "package_name": "in.fitterverse.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "46698969942-2uosl6v4bter53kb49frctgdtjf3b209.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA554Nv6X01JRtarKUXKSuuFSF03lJjNfc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "46698969942-2uosl6v4bter53kb49frctgdtjf3b209.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

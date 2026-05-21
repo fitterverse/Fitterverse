@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Fitterverse</string>
+    <string name="title_activity_main">Fitterverse</string>
+    <string name="package_name">in.fitterverse.app</string>
+    <string name="custom_url_scheme">in.fitterverse.app</string>
+</resources>
