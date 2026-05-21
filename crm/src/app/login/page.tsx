@@ -2,107 +2,129 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth'
+import { auth, googleProvider } from '@/features/auth/client/firebase'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  async function createSession(uid: string, email: string) {
+    const res = await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid, email }),
+    })
+    if (!res.ok) throw new Error('Session creation failed')
+    const data = await res.json()
+    return data as { ok: boolean; onboardingCompleted: boolean }
+  }
+
+  async function handleGoogle() {
+    setGoogleLoading(true)
+    try {
+      // 10X FIX: Ensure persistence is set to Local (survives app close)
+      await setPersistence(auth, browserLocalPersistence);
+      
+      const credential = await signInWithPopup(auth, googleProvider)
+      const user = credential.user
+      const { onboardingCompleted } = await createSession(user.uid, user.email!)
+      
+      router.push(onboardingCompleted ? '/dashboard' : '/onboarding')
+      router.refresh()
+    } catch (err: any) {
+      console.error("Google Auth Error:", err);
+      // Helpful error for the "Missing Initial State" issue
+      if (err.code === 'auth/internal-error' || err.message?.includes('initial state')) {
+        toast.error("Storage error. Please try logging in with Email/Password or restart the app.")
+      } else if (!err.message?.includes('popup-closed')) {
+        toast.error("Google sign-in failed. Try again.")
+      }
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Login failed')
-      router.push('/dashboard')
+      await setPersistence(auth, browserLocalPersistence);
+      const credential = await signInWithEmailAndPassword(auth, email, password)
+      const user = credential.user
+      const { onboardingCompleted } = await createSession(user.uid, user.email!)
+      router.push(onboardingCompleted ? '/dashboard' : '/onboarding')
       router.refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Login failed')
+    } catch (err: any) {
+      toast.error("Wrong email or password.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left panel */}
-      <div className="hidden lg:flex w-1/2 bg-slate-900 flex-col justify-between p-12">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">F</span>
-          </div>
-          <span className="text-white font-semibold text-lg">Fitterverse</span>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center space-y-2">
+          <div className="text-5xl">🔥</div>
+          <h1 className="text-3xl font-bold">Fitterverse</h1>
+          <p className="text-muted-foreground">The 10X Accountability Partner</p>
         </div>
-        <div>
-          <h1 className="text-4xl font-bold text-white leading-tight">
-            Internal CRM
-          </h1>
-          <p className="mt-3 text-slate-400 text-lg">
-            Manage users, track progress, and run cohorts.
-          </p>
-        </div>
-        <p className="text-slate-600 text-sm">Restricted access — authorised team only.</p>
-      </div>
 
-      {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 p-6">
-        <div className="w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-7 h-7 rounded-md bg-green-500 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">F</span>
-            </div>
-            <span className="font-semibold text-slate-800">Fitterverse CRM</span>
-          </div>
+        <Card className="bg-card border-border shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-xl">Sign In</CardTitle>
+            <CardDescription>Continue your streak tracking</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-border h-11"
+                onClick={handleGoogle}
+                disabled={googleLoading || loading}
+              >
+                {googleLoading ? <Loader2 className="animate-spin mr-2" /> : <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" className="w-4 h-4 mr-2" />}
+                Continue with Google
+              </Button>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Sign in</h2>
-          <p className="text-sm text-gray-500 mb-8">Enter your team credentials to continue.</p>
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">or</span></div>
+              </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                placeholder="you@fitterverse.in"
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 px-4 rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors"
-            >
-              {loading ? 'Signing in…' : 'Sign in'}
-            </button>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required className="h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="h-11" />
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-4">
+              <Button type="submit" className="w-full h-11 text-base" disabled={loading || googleLoading}>
+                {loading && <Loader2 className="animate-spin mr-2" />}
+                Sign In
+              </Button>
+              <p className="text-sm text-muted-foreground text-center">
+                New here? <Link href="/signup" className="text-primary font-bold">Create account</Link>
+              </p>
+            </CardFooter>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   )
