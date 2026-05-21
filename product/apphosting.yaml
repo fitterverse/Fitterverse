@@ -57,6 +57,12 @@ env:
     availability:
       - RUNTIME
 
+  # ── AI LOGGING (ADDED FOR 10X) ─────────────────────────────
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+    availability:
+      - RUNTIME
+
   # ── Notifications ──────────────────────────────────────────
   - variable: CRON_SECRET
     secret: CRON_SECRET
