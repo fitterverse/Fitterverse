@@ -4,15 +4,18 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
+  Megaphone,
   Users,
   UserCog,
   LogOut,
 } from 'lucide-react'
 import { CrmRole } from '@/server/session'
+import { SOCIAL_ACCESS_ROLES } from '@/features/social/social-shared'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'master_coach', 'nutritionist', 'trainer', 'sales'] },
   { href: '/users', label: 'Users', icon: Users, roles: ['admin', 'master_coach', 'nutritionist', 'trainer', 'sales'] },
+  { href: '/social', label: 'Social', icon: Megaphone, roles: [...SOCIAL_ACCESS_ROLES] },
   { href: '/team', label: 'Team', icon: UserCog, roles: ['admin'] },
 ]
 
