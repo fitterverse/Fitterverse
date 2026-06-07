@@ -17,6 +17,8 @@ The product depth starts with nutrition accountability today and expands toward 
 
 ## Working locally
 
+Create `product/.env.local` before starting the app. For push notifications to work, `FIREBASE_SERVICE_ACCOUNT_JSON` must be the full Firebase Admin SDK service-account JSON serialized onto one line.
+
 ```bash
 npm install
 npm run dev

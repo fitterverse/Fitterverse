@@ -1,40 +1,53 @@
-// Firebase Admin SDK — server-side only.
 import admin from 'firebase-admin'
 
+let cachedApp: admin.app.App | null = null
+
+function getServiceAccountJson() {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim()
+  if (!raw) return null
+
+  const unwrapped =
+    (raw.startsWith("'") && raw.endsWith("'")) ||
+    (raw.startsWith('"') && raw.endsWith('"'))
+      ? raw.slice(1, -1)
+      : raw
+
+  return unwrapped
+}
+
 function initAdminApp(): admin.app.App {
-  if (admin.apps.length > 0) return admin.apps[0]!
-
-  let serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-
-  // 10X RESILIENCE: Handle cases where the string is wrapped in extra quotes from .env
-  if (serviceAccount) {
-    serviceAccount = serviceAccount.trim();
-    if (serviceAccount.startsWith("'") && serviceAccount.endsWith("'")) {
-      serviceAccount = serviceAccount.slice(1, -1);
-    }
-    if (serviceAccount.startsWith('"') && serviceAccount.endsWith('"')) {
-      serviceAccount = serviceAccount.slice(1, -1);
-    }
+  if (cachedApp) return cachedApp
+  if (admin.apps.length > 0) {
+    cachedApp = admin.apps[0]!
+    return cachedApp
   }
 
-  try {
-    const credential = serviceAccount
-      ? admin.credential.cert(JSON.parse(serviceAccount))
-      : admin.credential.applicationDefault();
+  const serviceAccountJson = getServiceAccountJson()
 
-    return admin.initializeApp({
+  try {
+    const credential = serviceAccountJson
+      ? admin.credential.cert(JSON.parse(serviceAccountJson))
+      : admin.credential.applicationDefault()
+
+    cachedApp = admin.initializeApp({
       credential,
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    });
-  } catch (error) {
-    console.error("❌ FIREBASE ADMIN INIT ERROR:", error);
-    // Fallback to basic init to prevent build crash
-    return admin.initializeApp({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    });
+    })
+
+    return cachedApp
+  } catch (cause) {
+    console.error('FIREBASE ADMIN INIT ERROR', cause)
+
+    throw new Error(
+      serviceAccountJson
+        ? 'FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.'
+        : 'Firebase Admin credentials are not configured.'
+    )
   }
 }
 
-const adminApp = initAdminApp()
-export const adminMessaging = admin.messaging(adminApp)
-export default adminApp
+export function getAdminMessaging() {
+  return admin.messaging(initAdminApp())
+}
+
+export default initAdminApp

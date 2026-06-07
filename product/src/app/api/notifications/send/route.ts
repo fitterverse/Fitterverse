@@ -11,7 +11,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/server/supabase/server'
-import { adminMessaging } from '@/lib/firebase/admin'
+import { getAdminMessaging } from '@/lib/firebase/admin'
 import { getDailyQuote, NOTIFICATION_TEMPLATES, SLOT_INTENSITIES } from '@/features/notifications/lib/constants'
 import type { MulticastMessage } from 'firebase-admin/messaging'
 
@@ -31,6 +31,17 @@ export async function POST(req: NextRequest) {
   const slot = req.nextUrl.searchParams.get('slot') as Slot | null
   if (!slot || !VALID_SLOTS.includes(slot)) {
     return NextResponse.json({ error: 'Invalid slot' }, { status: 400 })
+  }
+
+  let adminMessaging: ReturnType<typeof getAdminMessaging>
+  try {
+    adminMessaging = getAdminMessaging()
+  } catch (error) {
+    console.error('[notifications/send] Firebase Admin is unavailable', error)
+    return NextResponse.json(
+      { error: 'Notifications are not configured on the server.' },
+      { status: 500 }
+    )
   }
 
   const supabase = createClient()
