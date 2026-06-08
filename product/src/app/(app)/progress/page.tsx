@@ -1,182 +1,124 @@
-import { redirect } from 'next/navigation'
-import { getSession } from '@/server/session'
+import {
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  getDay,
+  isSameDay,
+  startOfMonth,
+} from 'date-fns'
+import { DrawerToggleButton } from '@/features/navigation/components/app-shell'
 import { getHistoryData } from '@/features/history/server/queries'
-import { getBadgesData } from '@/features/badges/server/queries'
 import { ProgressCharts } from '@/features/progress/components/progress-charts'
-import { BadgeCard } from '@/features/badges/components/badge-card'
-import { DailyScore, BADGE_DEFINITIONS, UserBadge, BadgeSlug } from '@/shared/types'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay } from 'date-fns'
+import type { DailyNutritionSummary, DailyScore } from '@/shared/types'
 
 function getDotColor(score: DailyScore | undefined): string {
-  if (!score || score.meals_logged === 0) return 'bg-secondary'
-  if (score.total_points >= 9 || score.is_streak_day) return 'bg-primary'  /* Vital Green */
-  if (score.total_points >= 3) return 'bg-[#E8A95B]'   /* Saffron — decent */
-  return 'bg-[#D8462E]'                                /* Crimson — at risk */
+  if (!score || score.total_points === 0) return 'bg-slate-200'
+  if (score.total_points >= 9) return 'bg-emerald-500'
+  if (score.total_points >= 3) return 'bg-emerald-300'
+  return 'bg-amber-300'
 }
 
 export default async function ProgressPage() {
-  const session = await getSession()
-  if (!session) redirect('/login')
-
-  const [data, badgesData] = await Promise.all([
-    getHistoryData(90),
-    getBadgesData(),
-  ])
-
-  const scores = (data?.scores || []) as DailyScore[]
+  const data = await getHistoryData(90)
+  const scores = (data.scores || []) as DailyScore[]
+  const summaries = (data.summaries || []) as DailyNutritionSummary[]
   const last30 = scores.slice(0, 30)
 
-  const totalDays = last30.length
-  const streakDays = last30.filter(s => s.is_streak_day).length
-  const perfectDays = last30.filter(s => s.total_points === 9).length
-  const avgScore = totalDays > 0
-    ? (last30.reduce((sum, s) => sum + s.total_points, 0) / totalDays).toFixed(1)
-    : '—'
+  const loggedDays = last30.filter((score) => score.total_points > 0).length
+  const streakDays = last30.filter((score) => score.is_streak_day).length
+  const avgScore = last30.length
+    ? (last30.reduce((sum, score) => sum + score.total_points, 0) / last30.length).toFixed(1)
+    : '0.0'
+  const avgFoodCalories = summaries.length
+    ? Math.round(summaries.reduce((sum, row) => sum + row.food_calories, 0) / summaries.length)
+    : 0
 
-  // Calendar heatmap
   const now = new Date()
   const monthStart = startOfMonth(now)
   const monthEnd = endOfMonth(now)
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
   const firstDayOfWeek = getDay(monthStart)
 
-  function getScoreForDate(date: Date): DailyScore | undefined {
-    return scores.find(s => s.date === format(date, 'yyyy-MM-dd'))
+  function getScoreForDate(date: Date) {
+    return scores.find((score) => score.date === format(date, 'yyyy-MM-dd'))
   }
-
-  // Badges
-  const earned = (badgesData?.earned || []) as UserBadge[]
-  const streak = badgesData?.streak
-  const currentStreak = streak?.current_streak || 0
-  const earnedCount = earned.length
-  const totalBadgeCount = BADGE_DEFINITIONS.length
-
-  function getEarned(slug: BadgeSlug): UserBadge | null {
-    return earned.find(b => b.badge_slug === slug) || null
-  }
-
-  const streakBadges = BADGE_DEFINITIONS.filter(d => d.requirement > 0)
-  const specialBadges = BADGE_DEFINITIONS.filter(d => d.requirement === 0)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Progress</h1>
-        <p className="text-sm text-muted-foreground">Your stats, history, and milestones</p>
-      </div>
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="text-2xl font-bold text-primary">{avgScore}</div>
-          <div className="text-xs text-muted-foreground mt-1">Avg score / day (30d)</div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="text-2xl font-bold text-green-400">{streakDays}</div>
-          <div className="text-xs text-muted-foreground mt-1">Streak days (30d)</div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="text-2xl font-bold text-amber-400">{perfectDays}</div>
-          <div className="text-xs text-muted-foreground mt-1">Perfect days 9/9</div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="text-2xl font-bold">{totalDays}</div>
-          <div className="text-xs text-muted-foreground mt-1">Days tracked</div>
+    <div className="space-y-6 pb-8">
+      <div className="flex items-center gap-4">
+        <DrawerToggleButton className="-ml-2 text-slate-900" />
+        <div>
+          <h1 className="text-4xl font-semibold text-slate-900">Progress</h1>
+          <p className="mt-1 text-lg text-slate-500">History, patterns, and consistency.</p>
         </div>
       </div>
 
-      {/* Charts */}
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard value={avgScore} label="Avg score / day" />
+        <StatCard value={loggedDays} label="Logged days (30d)" />
+        <StatCard value={streakDays} label="Streak days (30d)" />
+        <StatCard value={avgFoodCalories} label="Avg food calories" />
+      </div>
+
       {last30.length > 0 ? (
         <ProgressCharts scores={last30} />
       ) : (
-        <div className="bg-card border border-border rounded-xl p-8 text-center">
-          <div className="text-4xl mb-3">📊</div>
-          <p className="text-muted-foreground text-sm">Start logging meals to see your progress charts</p>
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
+          Log a few days first. Your trends will appear here automatically.
         </div>
       )}
 
-      {/* Calendar heatmap */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-sm">{format(now, 'MMMM yyyy')} — consistency view</h2>
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-            <div key={i} className="text-[10px] text-muted-foreground font-medium py-1">{d}</div>
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-xl font-semibold text-slate-900">{format(now, 'MMMM yyyy')} consistency</h2>
+
+        <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs text-slate-500">
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+            <div key={`${day}-${index}`} className="py-1">
+              {day}
+            </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
-          {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={`e-${i}`} />)}
-          {daysInMonth.map(day => {
+
+        <div className="mt-2 grid grid-cols-7 gap-1">
+          {Array.from({ length: firstDayOfWeek }).map((_, index) => (
+            <div key={`empty-${index}`} />
+          ))}
+
+          {daysInMonth.map((day) => {
             const score = getScoreForDate(day)
             const isToday = isSameDay(day, now)
-            const isFuture = day > now
+
             return (
               <div
                 key={day.toISOString()}
-                className={`aspect-square rounded-md flex items-center justify-center text-[11px] font-medium relative ${isToday ? 'ring-1 ring-primary ring-offset-1 ring-offset-background' : ''} ${isFuture ? 'opacity-20' : ''}`}
+                className={`relative flex aspect-square items-center justify-center rounded-xl text-sm font-medium ${
+                  isToday ? 'ring-1 ring-slate-300' : ''
+                }`}
               >
-                <div
-                  className={`absolute inset-0 rounded-md ${getDotColor(score)}`}
-                  style={{ opacity: score && score.meals_logged > 0 ? 0.4 : 0.08 }}
-                />
-                <span className={`relative z-10 ${isToday ? 'text-primary font-bold' : 'text-foreground'}`}>
+                <div className={`absolute inset-0 rounded-xl ${getDotColor(score)} opacity-35`} />
+                <span className={`relative z-10 ${isToday ? 'text-slate-900' : 'text-slate-700'}`}>
                   {format(day, 'd')}
                 </span>
               </div>
             )
           })}
         </div>
-        <div className="flex gap-4 text-xs text-muted-foreground flex-wrap">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400 inline-block" />9/9</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary inline-block" />≥6 pts</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />&lt;6 pts</span>
-        </div>
-      </div>
+      </section>
+    </div>
+  )
+}
 
-      {/* Badges section */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Badges
-          </h2>
-          <span className="text-xs text-muted-foreground">{earnedCount}/{totalBadgeCount} earned</span>
-        </div>
-
-        {/* Progress bar */}
-        <div className="bg-card border border-border rounded-xl p-4 mb-3 space-y-2">
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Collection progress</span>
-            <span className="text-primary font-bold">{Math.round((earnedCount / totalBadgeCount) * 100)}%</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{ width: `${(earnedCount / totalBadgeCount) * 100}%` }}
-            />
-          </div>
-          {currentStreak > 0 && (() => {
-            const nextBadge = streakBadges
-              .filter(b => !getEarned(b.slug) && b.requirement > currentStreak)
-              .sort((a, b) => a.requirement - b.requirement)[0]
-            if (!nextBadge) return (
-              <p className="text-xs text-muted-foreground">🔥 {currentStreak}-day streak — all streak badges earned! 👑</p>
-            )
-            return (
-              <p className="text-xs text-muted-foreground">
-                🔥 {currentStreak}-day streak — {nextBadge.requirement - currentStreak} day{nextBadge.requirement - currentStreak !== 1 ? 's' : ''} to <span className="text-foreground font-medium">{nextBadge.name}</span> {nextBadge.icon}
-              </p>
-            )
-          })()}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {specialBadges.map(def => (
-            <BadgeCard key={def.slug} definition={def} earned={getEarned(def.slug)} currentStreak={currentStreak} />
-          ))}
-          {streakBadges.map(def => (
-            <BadgeCard key={def.slug} definition={def} earned={getEarned(def.slug)} currentStreak={currentStreak} />
-          ))}
-        </div>
-      </div>
+function StatCard({
+  value,
+  label,
+}: {
+  value: number | string
+  label: string
+}) {
+  return (
+    <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-4xl font-semibold text-slate-900">{value}</p>
+      <p className="mt-2 text-sm text-slate-500">{label}</p>
     </div>
   )
 }

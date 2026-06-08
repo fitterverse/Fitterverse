@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/server/session'
 import { createClient } from '@/server/supabase/server'
-import { BottomNav } from '@/features/navigation/components/bottom-nav'
 import { NotificationPermissionBanner } from '@/features/notifications/components/permission-banner'
+import { AppShell } from '@/features/navigation/components/app-shell'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession()
@@ -21,13 +21,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="max-w-md mx-auto px-4 pt-6 pb-24">
-        {children}
-      </main>
-      <BottomNav />
-      {/* Banner appears above nav, only if browser hasn't been asked for permission yet */}
-      <NotificationPermissionBanner />
-    </div>
+    <AppShell>
+      <div className="fv-app-light min-h-screen bg-[#f4f6fb]">
+        <main className="mx-auto max-w-md px-4 pb-8 pt-6">
+          {children}
+        </main>
+        <NotificationPermissionBanner />
+      </div>
+    </AppShell>
   )
 }

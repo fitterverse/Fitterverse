@@ -57,6 +57,143 @@ export interface DailyScore {
   total_points: number
   meals_logged: number
   is_streak_day: boolean
+  steps?: number | null
+}
+
+export type JournalEntryType = 'food' | 'workout'
+export type JournalSourceType = 'text' | 'camera' | 'gallery' | 'text_image'
+export type JournalStatus = 'processing' | 'ready' | 'failed' | 'deleted'
+
+export interface JournalSecondaryNutrients {
+  fiber_g?: number | null
+  sugar_g?: number | null
+  added_sugar_g?: number | null
+  net_carbs_g?: number | null
+  saturated_fat_g?: number | null
+  polyunsaturated_fat_g?: number | null
+  monounsaturated_fat_g?: number | null
+  trans_fat_g?: number | null
+  cholesterol_mg?: number | null
+  sodium_mg?: number | null
+  calcium_mg?: number | null
+  iron_mg?: number | null
+  potassium_mg?: number | null
+  vitamin_a_iu?: number | null
+  vitamin_c_mg?: number | null
+  vitamin_d_iu?: number | null
+}
+
+export interface JournalAnalysisStructured {
+  raw_detected_name?: string | null
+  estimated_quantity?: string | null
+  duration_minutes?: number | null
+  reps_or_sets?: string | null
+  flags?: string[]
+  activity_type?: string | null
+  intensity?: string | null
+  muscle_focus?: string[]
+}
+
+export interface JournalCoachSuggestions {
+  positive_signals?: string[]
+  watchouts?: string[]
+  next_best_meal?: string | null
+  balance_tip?: string | null
+  hydration_tip?: string | null
+  recovery_tip?: string | null
+  fuel_tip?: string | null
+  progression_tip?: string | null
+  confidence_note?: string | null
+}
+
+export interface JournalParsedJson extends Record<string, unknown> {
+  entry_type?: JournalEntryType
+  display_title?: string
+  summary_text?: string
+  structured?: JournalAnalysisStructured
+  coach?: JournalCoachSuggestions
+}
+
+export interface JournalEntryAnalysis {
+  id: string
+  entry_id: string
+  user_id: string
+  model_provider: string
+  model_name: string | null
+  analysis_kind: 'create' | 'edit' | 'detail_refresh'
+  input_text: string | null
+  parsed_json: JournalParsedJson
+  display_title: string | null
+  summary_text: string | null
+  calories: number | null
+  carbs_g: number | null
+  protein_g: number | null
+  fat_g: number | null
+  secondary_nutrients: JournalSecondaryNutrients | null
+  confidence_score: number | null
+  latency_ms: number | null
+  token_input: number | null
+  token_output: number | null
+  error_code: string | null
+  created_at: string
+}
+
+export interface JournalEntry {
+  id: string
+  user_id: string
+  entry_type: JournalEntryType | null
+  source_type: JournalSourceType | null
+  status: JournalStatus
+  logged_for_date: string
+  logged_at: string
+  display_title: string | null
+  raw_input_text: string | null
+  latest_analysis_id: string | null
+  image_count: number
+  is_edited: boolean
+  edit_count: number
+  deleted_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface JournalEntryMedia {
+  id: string
+  entry_id: string
+  user_id: string
+  storage_path: string
+  mime_type: string | null
+  file_size_bytes: number | null
+  width: number | null
+  height: number | null
+  retention_expires_at: string
+  created_at: string
+}
+
+export interface JournalFeedItem {
+  entry: JournalEntry
+  analysis: JournalEntryAnalysis | null
+}
+
+export interface DailyNutritionSummary {
+  user_id: string
+  date: string
+  food_calories: number
+  exercise_calories: number
+  carbs_g: number
+  protein_g: number
+  fat_g: number
+  entry_count: number
+  food_entry_count: number
+  workout_entry_count: number
+  updated_at: string
+}
+
+export interface NutritionTargets {
+  calorie_target: number
+  carbs_g: number
+  protein_g: number
+  fat_g: number
 }
 
 export interface UserStreak {

@@ -259,3 +259,23 @@
 .article-prose td {
   @apply border-t border-white/10 px-4 py-3 align-top;
 }
+
+.fv-app-light {
+  --background: #f4f6fb;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #111827;
+  --primary-foreground: #ffffff;
+  --secondary: #eef2f7;
+  --secondary-foreground: #111827;
+  --muted: #eef2f7;
+  --muted-foreground: #64748b;
+  --accent: #eef2f7;
+  --accent-foreground: #111827;
+  --border: #dbe3ef;
+  --input: #dbe3ef;
+  --ring: #94a3b8;
+}

@@ -5,15 +5,15 @@ export const NOTIFICATION_CATEGORIES = [
     key: 'meal_reminders' as const,
     icon: Utensils,
     label: 'Meal Reminders',
-    description: 'Gentle nudges at breakfast, lunch, and dinner to log what you ate.',
-    deepLink: '/diet',
+    description: 'Gentle nudges to log what you ate before the day gets away from you.',
+    deepLink: '/dashboard',
   },
   {
     key: 'workout_reminders' as const,
     icon: Dumbbell,
     label: 'Workout Reminders',
     description: 'An evening prompt to log your session before the day closes.',
-    deepLink: '/workout',
+    deepLink: '/dashboard',
   },
   {
     key: 'motivation_quotes' as const,
@@ -27,7 +27,7 @@ export const NOTIFICATION_CATEGORIES = [
     icon: Flame,
     label: 'Streak Alerts',
     description: 'An evening alert if your streak is at risk. Never lose one silently.',
-    deepLink: '/dashboard',
+    deepLink: '/streak',
   },
 ] as const
 
@@ -128,21 +128,21 @@ export const NOTIFICATION_TEMPLATES = {
   lunch: {
     title: 'Lunch check-in 🍽️',
     body: () => "Don't forget to log lunch. Takes 30 seconds.",
-    url: '/diet',
+    url: '/dashboard',
   },
   workout: {
     title: 'Workout time 💪',
     body: () => 'Did you move today? Log your session before you wind down.',
-    url: '/workout',
+    url: '/dashboard',
   },
   evening_streak: {
     title: (streak: number) => `${streak}-day streak on the line 🔥`,
     body: () => 'Log today before midnight to keep it alive.',
-    url: '/diet',
+    url: '/streak',
   },
   evening_default: {
     title: "Evening check-in 🌙",
     body: () => "How did today go? Log your meals and keep the streak going.",
-    url: '/diet',
+    url: '/dashboard',
   },
 } as const
